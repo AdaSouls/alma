@@ -157,6 +157,11 @@ ALMA is an open protocol for answering that question with verifiable identity, a
 ## Repository layout
 
 ```text
+/ (repo root)            the marketing/docs site — Next.js, deployed at
+                         alma.adasouls.io. This is the repo's Vercel
+                         project root on purpose: it's the same root the
+                         legacy site (see legacy/) deployed from, so the
+                         existing Vercel project keeps working unchanged.
 packages/
   alma-core/            identifiers, Subject/Principal identity, delegation,
                          credentials, the relationship graph, reputation
@@ -180,6 +185,8 @@ legacy/
 
 ```bash
 npm install
+npm run dev                    # the site — http://localhost:3000
+npm run build                  # production build of the site (what Vercel runs)
 npm test                       # alma-core's + cli's test suites
 npm run dev:identity-studio    # http://localhost:5173
 ```
@@ -188,6 +195,11 @@ npm run dev:identity-studio    # http://localhost:5173
 cd packages/cli && npm run build
 node dist/bin.js connect       # try the CLI locally, from any project dir
 ```
+
+The site's `/developers` page shows real output from `packages/cli` —
+every line in its terminal blocks came from an actual run against a
+scratch project, not a mockup. If the CLI's behavior changes, that page's
+copy needs to be re-verified against a real run, not just edited.
 
 `alma-core` has no external dependencies beyond `zod` (runtime validation)
 and no network access or database — see its own tests in

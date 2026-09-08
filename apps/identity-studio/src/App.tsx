@@ -18,7 +18,7 @@ export default function App() {
       <header className="border-b border-line bg-paper-raised">
         <div className="max-w-5xl mx-auto px-6 py-6 flex items-center justify-between">
           <div>
-            <p className="font-mono text-xs uppercase tracking-widest text-accent-text mb-1">AdaSouls Labs · ALMA v1</p>
+            <p className="font-mono text-xs uppercase tracking-widest text-accent-text mb-1">AdaSouls · ALMA v1</p>
             <h1 className="font-display text-2xl text-ink">Identity Studio</h1>
           </div>
           <p className="text-sm text-ink-soft max-w-xs text-right hidden sm:block">

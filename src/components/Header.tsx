@@ -14,7 +14,7 @@ export function Header() {
         <Link href="/" className="flex items-center gap-2.5">
           <Image src="/alma-mark.png" alt="" width={28} height={28} />
           <span className="font-mono text-xs uppercase tracking-widest text-ink-soft">
-            AdaSouls <span className="text-ink font-semibold">Labs</span>
+            <span className="text-ink font-semibold">AdaSouls</span>
           </span>
         </Link>
         <nav className="flex items-center gap-6">

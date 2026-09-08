@@ -1,0 +1,28 @@
+{
+  "name": "@adasouls/identity-studio",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Reference frontend for the ALMA protocol: create and inspect a portable economic identity as a human, organization, or agent, and build up the relationship/delegation graph between them.",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit -p tsconfig.json && vite build",
+    "preview": "vite preview",
+    "lint": "eslint . --ext ts,tsx --max-warnings 0"
+  },
+  "dependencies": {
+    "@adasouls/alma-core": "*",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.11",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.2",
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.4.47",
+    "tailwindcss": "^3.4.13",
+    "typescript": "^5.6.0",
+    "vite": "^5.4.8"
+  }
+}

@@ -1,58 +1,188 @@
-# $ALMA - Soulbound Token Minting
+# ALMA
 
-**Your ALDEA journey starts here**
+ALMA provides persistent identity, verifiable credentials, delegated authority, relationships, and economic reputation across digital and financial systems.
 
-A professional, mysterious, and fast React website for minting $ALMA soulbound tokens on Cardano.
+It allows any actor — human, organization, or autonomous agent — to answer five fundamental questions:
 
-## Features
+- **Who are you?** — Persistent, portable identity.
+- **Who do you represent?** — Verifiable relationships between humans, organizations, and agents.
+- **What are you authorized to do?** — Cryptographically verifiable delegation and authority.
+- **What can you prove?** — Public, private, and selectively disclosed credentials.
+- **What have you done?** — Verifiable economic history and reputation evidence.
 
-- 🎨 Modern, mysterious design with smooth animations
-- 💳 Cardano wallet integration (Nami, Eternl, Flint, etc.)
-- 🔒 Soulbound NFT minting with 5 levels
-- ⚡ Fast and optimized for performance
-- 📱 Fully responsive design
-- 🌐 Ready for Vercel deployment
+ALMA is not a wallet, token, identity provider, or centralized reputation score.
 
-## Token Levels
+It is an open trust layer designed to aggregate and verify evidence from multiple sources — including blockchains, wallets, credentials, organizations, agent protocols, and economic interactions — while allowing applications to define their own trust policies.
 
-- **Level 1**: 15 ADA - Entry level
-- **Level 2**: 25 ADA - Intermediate
-- **Level 3**: 50 ADA - Advanced
-- **Level 4**: 100 ADA - Expert
-- **Level 5**: 250 ADA - Master
+```
+Human ─────── owns ───────► Organization
+                                │
+                             delegates
+                                │
+                                ▼
+                              Agent
+                                │
+                           transacts with
+                                │
+                                ▼
+                              Agent
+```
+
+Each participant has a persistent ALMA identity:
+
+```
+alma:human:...
+alma:org:...
+alma:agent:...
+```
+
+An ALMA identity is independent of any particular wallet, blockchain, AI model, runtime, or provider. Controllers, wallets, endpoints, credentials, and infrastructure can change without changing the underlying identity.
+
+## Trust, not just identity
+
+ALMA is designed for systems where knowing who an actor is isn't enough.
+
+An application may need to determine whether an actor is trustworthy for a particular interaction.
+
+```
+Identity
+    +
+Principal
+    +
+Delegated Authority
+    +
+Credentials
+    +
+Relationships
+    +
+Economic Evidence
+    ↓
+Trust Evaluation
+    ↓
+ALLOW / DENY / REQUIRE PROOF / REQUIRE APPROVAL
+```
+
+ALMA therefore does not define a universal reputation score.
+
+Instead, it exposes verifiable evidence that applications, organizations, and autonomous agents can evaluate according to their own policies.
+
+## Public, Private, Provable
+
+ALMA is designed around three visibility models:
+
+- **Public** — information intended to be openly discoverable and independently verifiable.
+- **Private** — information that remains confidential.
+- **Provable** — claims that can be proven without revealing the underlying information, using cryptographic credentials and zero-knowledge proofs.
+
+For example, an agent may prove that:
+
+```
+principal.isVerifiedBusiness == true
+authority.transactionLimit >= $50,000
+completedTransactions > 1,000
+```
+
+without necessarily revealing the underlying private data.
+
+## On-chain and off-chain
+
+ALMA is blockchain-compatible, but not blockchain-dependent.
+
+On-chain registries can provide portable identity anchors, controllers, commitments, revocations, attestations, and verifiable economic events.
+
+Rich profiles, private credentials, relationship graphs, economic evidence, and rapidly changing metadata can remain off-chain.
+
+```
+                  ALMA Identity
+                       │
+          ┌────────────┴────────────┐
+          │                         │
+       On-chain                  Off-chain
+          │                         │
+   identity anchors            profiles
+   commitments                 credentials
+   attestations                relationships
+   revocations                 economic evidence
+   transactions                private information
+          │                         │
+          └────────────┬────────────┘
+                       ▼
+                  ALMA Resolver
+                       │
+                       ▼
+                Trust Evaluation
+```
+
+The objective is not to require applications to trust a single database.
+
+Where possible, ALMA information should be backed by independently verifiable evidence.
+
+## AI agents
+
+For autonomous agents, ALMA separates the agent's identity from the infrastructure executing it.
+
+An agent can change:
+
+- Claude → GPT
+- AWS → local runtime
+- Safe → another wallet provider
+- Base → another blockchain
+
+while retaining the same identity, relationships, authority, credentials, and economic history.
+
+This makes it possible for autonomous agents to establish persistent economic identities and build reputation over time.
+
+## Interoperability
+
+ALMA is intended to complement, not replace, existing infrastructure and standards.
+
+Identity, credentials, agent discovery, wallets, blockchains, payment protocols, and communication protocols can act as sources of identity and trust evidence.
+
+ALMA provides the common layer through which that evidence can be resolved and evaluated.
+
+## Philosophy
+
+The Internet established protocols for determining:
+
+> "Am I communicating with the server I intended to reach?"
+
+Autonomous economic systems introduce a broader question:
+
+> "Should I trust this actor for this particular interaction?"
+
+ALMA is an open protocol for answering that question with verifiable identity, authority, credentials, relationships, and economic evidence.
+
+**Identity is persistent. Authority is delegated. Reputation is earned. Trust is contextual.**
+
+## Repository layout
+
+```text
+packages/
+  alma-core/            identifiers, Subject/Principal identity, delegation,
+                         credentials, the relationship graph, reputation
+                         evidence — the protocol implementation, no network
+                         access or persistence of its own
+apps/
+  identity-studio/       reference frontend: issue an identity as a human,
+                         organization, or agent, and build up relationships
+                         and delegations between them — kept entirely in
+                         the browser (localStorage), no backend
+legacy/
+  aldea-soulbound-mint/  an earlier, unrelated Cardano NFT-minting site
+                         that used to live at this repo's root — see
+                         legacy/README.md
+```
 
 ## Development
 
 ```bash
-# Install dependencies
 npm install
-
-# Run development server
-npm run dev
-
-# Build for production
-npm run build
-
-# Preview production build
-npm run preview
+npm test                       # alma-core's test suite
+npm run dev:identity-studio    # http://localhost:5173
 ```
 
-## Deployment to Vercel
-
-1. Push your code to GitHub
-2. Import the repository in Vercel
-3. Vercel will automatically detect the Vite configuration
-4. Deploy!
-
-## Smart Contract
-
-This project uses the AdaSouls Cardano Soulbound smart contracts for minting tokens that are:
-- Linked to Cardano stake addresses
-- Easily readable from the blockchain
-- Capable of storing metadata (especially for reputation)
-
-## Links
-
-- [ALDEA DAO](https://aldea-dao.org)
-- [Documentation](https://gitbook.io) _(Update with actual Gitbook link)_
-- [Autonomous World](https://autonomous.world) _(Update with actual link)_
+`alma-core` has no external dependencies beyond `zod` (runtime validation)
+and no network access or database — see its own tests in
+`packages/alma-core/test/`. `identity-studio` is a thin reference client
+over it; a hosted implementation (e.g. `adasouls-api`) is what would give
+identities cross-device persistence and a real API.

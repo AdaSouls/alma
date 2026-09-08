@@ -1,7 +1,7 @@
 {
-  "name": "@adasouls/alma-core",
+  "name": "@adasouls/alma-credentials",
   "version": "0.1.0",
-  "description": "ALMA protocol core: identifiers, Subject/Principal identity, delegation, credentials, the relationship graph, and reputation evidence.",
+  "description": "Pluggable credential verification interface for ALMA CredentialEvidence, plus a non-cryptographic reference stub.",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -18,10 +18,9 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "zod": "^3.23.8"
+    "@adasouls/alma-core": "*"
   },
   "devDependencies": {
-    "fast-check": "^3.23.0",
     "typescript": "^5.6.0",
     "vitest": "^2.1.0"
   }

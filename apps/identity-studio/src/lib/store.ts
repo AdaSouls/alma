@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import type { AlmaIdentity, Delegation, Relationship } from "@adasouls/alma-core";
+import type { AlmaIdentity, CredentialEvidence, Delegation, Relationship } from "@adasouls/alma-core";
 
 /**
  * Everything here lives in the browser's localStorage. This studio is a
@@ -14,9 +14,10 @@ interface StoreShape {
   identities: AlmaIdentity[];
   relationships: Relationship[];
   delegations: Delegation[];
+  credentials: CredentialEvidence[];
 }
 
-const EMPTY: StoreShape = { identities: [], relationships: [], delegations: [] };
+const EMPTY: StoreShape = { identities: [], relationships: [], delegations: [], credentials: [] };
 
 function load(): StoreShape {
   try {
@@ -27,6 +28,7 @@ function load(): StoreShape {
       identities: parsed.identities ?? [],
       relationships: parsed.relationships ?? [],
       delegations: parsed.delegations ?? [],
+      credentials: parsed.credentials ?? [],
     };
   } catch {
     return EMPTY;
@@ -66,6 +68,17 @@ export function useAlmaStore() {
     }));
   }, []);
 
+  const addCredential = useCallback((credential: CredentialEvidence) => {
+    setState((s) => ({ ...s, credentials: [...s.credentials, credential] }));
+  }, []);
+
+  const replaceCredential = useCallback((updated: CredentialEvidence) => {
+    setState((s) => ({
+      ...s,
+      credentials: s.credentials.map((c) => (c.id === updated.id ? updated : c)),
+    }));
+  }, []);
+
   const resolve = useCallback(
     (id: string) => state.identities.find((i) => i.id === id),
     [state.identities]
@@ -79,6 +92,8 @@ export function useAlmaStore() {
     addRelationship,
     addDelegation,
     replaceDelegation,
+    addCredential,
+    replaceCredential,
     resolve,
     clearAll,
   };

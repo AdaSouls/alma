@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { unwrap } from "./errors.js";
 import { randomLocalId } from "./identifier.js";
+import { revocationSchema } from "./delegation.js";
 
 /**
  * ALMA does not define a new credential format. A credential's proof MAY
@@ -25,6 +26,7 @@ export const credentialEvidenceSchema = z.object({
   issuedAt: z.string().datetime(),
   expiresAt: z.string().datetime().optional(),
   verificationStatus: z.enum(VERIFICATION_STATUSES),
+  revocation: revocationSchema.optional(),
 });
 export type CredentialEvidence = z.infer<typeof credentialEvidenceSchema>;
 
@@ -52,6 +54,22 @@ export function createCredentialEvidence(input: CreateCredentialInput): Credenti
       issuedAt: new Date().toISOString(),
       expiresAt: input.expiresAt,
       verificationStatus: input.verificationStatus ?? "unverified",
+    }),
+    "credential"
+  );
+}
+
+/**
+ * Revocation mirrors Delegation revocation (see delegation.ts):
+ * immediate, attributed, and non-retroactive. Returns a new object rather
+ * than mutating the input.
+ */
+export function revokeCredential(credential: CredentialEvidence, by: string, reason?: string): CredentialEvidence {
+  return unwrap(
+    credentialEvidenceSchema.safeParse({
+      ...credential,
+      verificationStatus: "revoked",
+      revocation: { at: new Date().toISOString(), by, reason },
     }),
     "credential"
   );

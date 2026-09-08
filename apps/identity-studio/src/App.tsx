@@ -4,8 +4,9 @@ import { IdentityForm } from "./components/IdentityForm.js";
 import { IdentityBrowser } from "./components/IdentityBrowser.js";
 import { RelationshipPanel } from "./components/RelationshipPanel.js";
 import { DelegationPanel } from "./components/DelegationPanel.js";
+import { CredentialPanel } from "./components/CredentialPanel.js";
 
-const TABS = ["Create", "Identities", "Relationships", "Delegations"] as const;
+const TABS = ["Create", "Identities", "Relationships", "Delegations", "Credentials"] as const;
 type Tab = (typeof TABS)[number];
 
 export default function App() {
@@ -65,6 +66,14 @@ export default function App() {
             delegations={store.delegations}
             onAdd={store.addDelegation}
             onUpdate={store.replaceDelegation}
+          />
+        )}
+        {tab === "Credentials" && (
+          <CredentialPanel
+            identities={store.identities}
+            credentials={store.credentials}
+            onAdd={store.addCredential}
+            onUpdate={store.replaceCredential}
           />
         )}
       </main>

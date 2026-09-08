@@ -1,0 +1,26 @@
+{
+  "name": "@adasouls/alma-cli",
+  "version": "0.1.0",
+  "description": "Command-line onboarding for the ALMA protocol: give your agent a portable economic identity from the terminal.",
+  "type": "module",
+  "bin": {
+    "alma": "./dist/bin.js"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@adasouls/alma-core": "*",
+    "commander": "^12.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.7.0",
+    "typescript": "^5.6.0",
+    "vitest": "^2.1.0"
+  }
+}

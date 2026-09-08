@@ -162,6 +162,9 @@ packages/
                          credentials, the relationship graph, reputation
                          evidence — the protocol implementation, no network
                          access or persistence of its own
+  cli/                  @adasouls/alma-cli — `alma connect` / `delegate` /
+                         `evidence add` / `whoami` from the terminal,
+                         state kept in the current project's ./.alma/
 apps/
   identity-studio/       reference frontend: issue an identity as a human,
                          organization, or agent, and build up relationships
@@ -177,12 +180,19 @@ legacy/
 
 ```bash
 npm install
-npm test                       # alma-core's test suite
+npm test                       # alma-core's + cli's test suites
 npm run dev:identity-studio    # http://localhost:5173
+```
+
+```bash
+cd packages/cli && npm run build
+node dist/bin.js connect       # try the CLI locally, from any project dir
 ```
 
 `alma-core` has no external dependencies beyond `zod` (runtime validation)
 and no network access or database — see its own tests in
-`packages/alma-core/test/`. `identity-studio` is a thin reference client
-over it; a hosted implementation (e.g. `adasouls-api`) is what would give
-identities cross-device persistence and a real API.
+`packages/alma-core/test/`. `identity-studio` and `cli` are thin reference
+clients over it; a hosted implementation (e.g. `adasouls-api`) is what
+would give identities cross-device persistence and a real API — see
+`packages/cli/README.md` for exactly which parts of the CLI vision that
+unlocks and aren't built yet.

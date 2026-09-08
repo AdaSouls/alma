@@ -7,6 +7,9 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+# Docs
+/docs
+
 node_modules
 dist
 dist-ssr
@@ -32,3 +35,6 @@ next-env.d.ts
 .env
 .env.local
 .env.production
+
+# alma
+.alma/

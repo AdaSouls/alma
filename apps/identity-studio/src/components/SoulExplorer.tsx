@@ -119,7 +119,22 @@ export function SoulExplorer({
               itself. The point it's demonstrating is real: the Soul below is exactly the same identity, delegations,
               and credentials whether an AI is currently attached to it or not, and whichever model is.
             </p>
-            {binding ? (
+            {selected.subjectType !== "agent" ? (
+              <p className="text-sm text-ink-soft">
+                Only a Soul of type <span className="font-mono">agent</span> can have a live AI attached —{" "}
+                {selected.subjectType === "organization" ? "an" : "a"} {selected.subjectType} Soul is a principal an
+                agent represents, not something an AI runtime runs as.
+                {binding && (
+                  <>
+                    {" "}This Soul has a stale binding from before that rule existed —{" "}
+                    <button onClick={() => detachAgent(selected.id)} className="text-red-700 hover:underline">
+                      clear it
+                    </button>
+                    .
+                  </>
+                )}
+              </p>
+            ) : binding ? (
               <div className="flex items-center justify-between gap-3">
                 <span className="text-sm">
                   <span className="inline-block w-2 h-2 rounded-full bg-evidence mr-2" />

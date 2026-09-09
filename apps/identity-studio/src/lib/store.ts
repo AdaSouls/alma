@@ -115,13 +115,17 @@ export function useAlmaStore() {
   }, []);
 
   const attachAgent = useCallback((identityId: string, label: string) => {
-    setState((s) => ({
-      ...s,
-      agentBindings: {
-        ...s.agentBindings,
-        [identityId]: { label, attachedAt: new Date().toISOString() },
-      },
-    }));
+    setState((s) => {
+      const identity = s.identities.find((i) => i.id === identityId);
+      if (identity?.subjectType !== "agent") return s;
+      return {
+        ...s,
+        agentBindings: {
+          ...s.agentBindings,
+          [identityId]: { label, attachedAt: new Date().toISOString() },
+        },
+      };
+    });
   }, []);
 
   const detachAgent = useCallback((identityId: string) => {

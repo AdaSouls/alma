@@ -11,7 +11,10 @@
     "test": "npm run test --workspaces --if-present",
     "test:packages": "npm run test --workspaces --if-present",
     "build:packages": "npm run build --workspaces --if-present",
-    "dev:identity-studio": "npm run dev --workspace apps/identity-studio"
+    "dev:identity-studio": "npm run dev --workspace apps/identity-studio",
+    "changeset": "changeset",
+    "version-packages": "changeset version",
+    "release": "npm run build:packages && changeset publish"
   },
   "workspaces": [
     "packages/*",
@@ -23,6 +26,8 @@
     "react-dom": "19.2.8"
   },
   "devDependencies": {
+    "@changesets/changelog-github": "^1.0.1",
+    "@changesets/cli": "^3.0.2",
     "@tailwindcss/postcss": "4.3.3",
     "@types/node": "^22.7.0",
     "@types/react": "^19.0.0",

@@ -1,8 +1,8 @@
 {
-  "name": "@adasouls/identity-studio",
+  "name": "@adasouls/soul-forge",
   "private": true,
   "version": "0.1.0",
-  "description": "Reference frontend for the ALMA protocol: create and inspect a portable economic identity as a human, organization, or agent, and build up the relationship/delegation graph between them.",
+  "description": "Soul Forge: forge a portable ALMA identity for a human, organization, or agent, build up its relationships/delegations/credentials, and explore any Soul's live-agent binding and accumulated evidence.",
   "type": "module",
   "scripts": {
     "dev": "vite",

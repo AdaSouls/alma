@@ -10,5 +10,5 @@
   "access": "restricted",
   "baseBranch": "develop",
   "updateInternalDependencies": "patch",
-  "ignore": ["@adasouls/alma-site", "@adasouls/identity-studio", "@adasouls/alma-cli"]
+  "ignore": ["@adasouls/alma-site", "@adasouls/soul-forge", "@adasouls/alma-cli"]
 }

@@ -1,5 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
-import type { AlmaIdentity, CredentialEvidence, Delegation, Relationship } from "@adasouls/alma-core";
+import type {
+  AlmaIdentity,
+  CredentialEvidence,
+  Delegation,
+  Relationship,
+  ReputationEvidence,
+} from "@adasouls/alma-core";
 
 /**
  * Everything here lives in the browser's localStorage. This studio is a
@@ -10,14 +16,37 @@ import type { AlmaIdentity, CredentialEvidence, Delegation, Relationship } from 
  */
 const STORAGE_KEY = "alma-identity-studio/v1";
 
+/**
+ * Illustrative only — NOT an ALMA concept. The real thing this stands in
+ * for is an AgentInstance (docs/12-agent-lifecycle.md): a live binding of
+ * an AgentDefinition to a runtime session. That's real future protocol
+ * surface with its own lifecycle owner (adasouls-api), not something
+ * alma-core models today — see docs/MASTER-ROADMAP.md's Phase 3/11 notes.
+ * This is just a label + timestamp kept in the browser so the Explorer can
+ * demonstrate "a Soul can have zero or one AI agent currently attached."
+ */
+export interface AgentBinding {
+  label: string;
+  attachedAt: string;
+}
+
 interface StoreShape {
   identities: AlmaIdentity[];
   relationships: Relationship[];
   delegations: Delegation[];
   credentials: CredentialEvidence[];
+  reputationEvidence: ReputationEvidence[];
+  agentBindings: Record<string, AgentBinding>;
 }
 
-const EMPTY: StoreShape = { identities: [], relationships: [], delegations: [], credentials: [] };
+const EMPTY: StoreShape = {
+  identities: [],
+  relationships: [],
+  delegations: [],
+  credentials: [],
+  reputationEvidence: [],
+  agentBindings: {},
+};
 
 function load(): StoreShape {
   try {
@@ -29,6 +58,8 @@ function load(): StoreShape {
       relationships: parsed.relationships ?? [],
       delegations: parsed.delegations ?? [],
       credentials: parsed.credentials ?? [],
+      reputationEvidence: parsed.reputationEvidence ?? [],
+      agentBindings: parsed.agentBindings ?? {},
     };
   } catch {
     return EMPTY;
@@ -79,6 +110,29 @@ export function useAlmaStore() {
     }));
   }, []);
 
+  const addReputationEvidence = useCallback((evidence: ReputationEvidence) => {
+    setState((s) => ({ ...s, reputationEvidence: [...s.reputationEvidence, evidence] }));
+  }, []);
+
+  const attachAgent = useCallback((identityId: string, label: string) => {
+    setState((s) => ({
+      ...s,
+      agentBindings: {
+        ...s.agentBindings,
+        [identityId]: { label, attachedAt: new Date().toISOString() },
+      },
+    }));
+  }, []);
+
+  const detachAgent = useCallback((identityId: string) => {
+    setState((s) => {
+      const rest = Object.fromEntries(
+        Object.entries(s.agentBindings).filter(([id]) => id !== identityId)
+      );
+      return { ...s, agentBindings: rest };
+    });
+  }, []);
+
   const resolve = useCallback(
     (id: string) => state.identities.find((i) => i.id === id),
     [state.identities]
@@ -94,6 +148,9 @@ export function useAlmaStore() {
     replaceDelegation,
     addCredential,
     replaceCredential,
+    addReputationEvidence,
+    attachAgent,
+    detachAgent,
     resolve,
     clearAll,
   };

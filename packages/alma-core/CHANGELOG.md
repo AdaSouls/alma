@@ -1,5 +1,11 @@
 # @adasouls/alma-core
 
+## 0.2.0
+
+### Minor Changes
+
+- [#3](https://github.com/AdaSouls/alma/pull/3) [`5a9d47d`](https://github.com/AdaSouls/alma/commit/5a9d47d1e3b58e704a4d012d5a1250eb6131aa90) Thanks [@MatiFalcone](https://github.com/MatiFalcone)! - Add counterparty receipts (`alma-receipt/1`): `buildReceiptStatement`, `canonicalizeReceipt` (RFC 8785 JCS over printable-ASCII strings), `receiptDigest` (SHA-256), `generateReceiptSalt`, and `toBaseUnits` (exact decimal-to-base-unit conversion). Statements carry issuer, env (mainnet/testnet/mock), payer, payee, CAIP-2 chain, CAIP-19 asset, integer amount, destination, txHash and settlement time.
+
 ## 0.1.1
 
 ### Patch Changes

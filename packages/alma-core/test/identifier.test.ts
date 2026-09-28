@@ -7,6 +7,7 @@ import {
   slugifyLocalId,
   randomLocalId,
   SUBJECT_TYPES,
+  canonicalSubjectType,
 } from "../src/identifier.js";
 import { AlmaValidationError } from "../src/errors.js";
 
@@ -23,6 +24,30 @@ describe("identifier format", () => {
 
   it.each(["human", "organization", "agent"] as const)("accepts subject type %s", (subjectType) => {
     expect(isValidIdentifier(`alma:main:${subjectType}:x`)).toBe(true);
+  });
+
+  it("accepts org as the short form of organization (AlmaAnchorRegistry, ALDEA World)", () => {
+    expect(isValidIdentifier("alma:main:org:tribu-raes")).toBe(true);
+    expect(parseIdentifier("alma:main:org:tribu-raes")).toEqual({
+      network: "main",
+      subjectType: "organization",
+      localId: "tribu-raes",
+      subjectTypeSegment: "org",
+    });
+  });
+
+  it("preserves the org segment when formatting (identifiers are immutable)", () => {
+    const id = "alma:main:org:aldea-world";
+    expect(formatIdentifier(parseIdentifier(id))).toBe(id);
+    expect(formatIdentifier({ network: "main", subjectType: "organization", localId: "acme" })).toBe(
+      "alma:main:organization:acme"
+    );
+  });
+
+  it("rejects a segment that does not denote the declared subject type", () => {
+    expect(() =>
+      formatIdentifier({ network: "main", subjectType: "human", localId: "x", subjectTypeSegment: "org" })
+    ).toThrow(AlmaValidationError);
   });
 
   it("rejects a subject type outside the closed set", () => {
@@ -133,7 +158,7 @@ describe("identifier format — property-based (fast-check)", () => {
     fc.assert(
       fc.property(
         validNetwork,
-        fc.string().filter((s) => !(SUBJECT_TYPES as readonly string[]).includes(s) && !s.includes(":")),
+        fc.string().filter((s) => canonicalSubjectType(s) === undefined && !s.includes(":")),
         validLocalId,
         (network, subjectType, localId) => {
           expect(() => parseIdentifier(`alma:${network}:${subjectType}:${localId}`)).toThrow(

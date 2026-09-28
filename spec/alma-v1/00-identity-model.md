@@ -34,7 +34,10 @@ examples:
   identical to) a DID method string, so a `did:alma:...` mapping is a
   straightforward addition later rather than a redesign — see
   `02-revocation-portability-interop.md`.
-- **`<subject-type>`** is one of the three closed types above.
+- **`<subject-type>`** is one of the three closed types above, written `human`, `agent`, and `organization` or its
+  short form `org` (as in the example and in AlmaAnchorRegistry on-chain). Both forms denote the same Subject type;
+  because identifiers are immutable, an identifier keeps the form it was issued with, and implementations must
+  accept both.
 - **`<local-id>`** is implementation-defined (AdaSouls uses a ULID or a
   human-chosen slug for organizations); ALMA does not mandate a specific
   ID generation scheme, only that it is unique within `<network>` and,

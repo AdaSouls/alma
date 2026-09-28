@@ -2,13 +2,19 @@
   "$schema": "https://unpkg.com/@changesets/config@3.0.0/schema.json",
   "changelog": [
     "@changesets/changelog-github",
-    { "repo": "AdaSouls/alma" }
+    {
+      "repo": "AdaSouls/alma"
+    }
   ],
   "commit": false,
   "fixed": [],
   "linked": [],
-  "access": "restricted",
+  "access": "public",
   "baseBranch": "develop",
   "updateInternalDependencies": "patch",
-  "ignore": ["@adasouls/alma-site", "@adasouls/soul-forge", "@adasouls/alma-cli"]
+  "ignore": [
+    "@adasouls/alma-site",
+    "@adasouls/soul-forge",
+    "@adasouls/alma-cli"
+  ]
 }

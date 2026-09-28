@@ -8,10 +8,28 @@ import { AlmaValidationError } from "./errors.js";
 export const SUBJECT_TYPES = ["human", "organization", "agent"] as const;
 export type SubjectType = (typeof SUBJECT_TYPES)[number];
 
+/**
+ * Short forms accepted in the `<subject-type>` segment. `org` is the form used on-chain by
+ * AlmaAnchorRegistry (`alma:main:org:<slug>`) and by ALDEA World; it denotes the same Subject type as
+ * `organization`. Identifiers are immutable, so the segment is preserved exactly as written: parsing
+ * normalizes `subjectType` to the canonical type and records the literal in `subjectTypeSegment`.
+ */
+export const SUBJECT_TYPE_ALIASES = { org: "organization" } as const satisfies Record<string, SubjectType>;
+export type SubjectTypeSegment = SubjectType | keyof typeof SUBJECT_TYPE_ALIASES;
+
 export interface ParsedIdentifier {
   network: string;
+  /** Canonical Subject type (`org` is reported as `organization`). */
   subjectType: SubjectType;
   localId: string;
+  /** The literal segment, present only when an alias such as `org` was used. */
+  subjectTypeSegment?: SubjectTypeSegment;
+}
+
+/** Canonical Subject type for a segment (`org` → `organization`), or undefined if it is not valid. */
+export function canonicalSubjectType(segment: string): SubjectType | undefined {
+  if ((SUBJECT_TYPES as readonly string[]).includes(segment)) return segment as SubjectType;
+  return SUBJECT_TYPE_ALIASES[segment as keyof typeof SUBJECT_TYPE_ALIASES];
 }
 
 const NETWORK_RE = /^[a-z][a-z0-9-]{0,31}$/;
@@ -26,10 +44,17 @@ const LOCAL_ID_RE = /^[A-Za-z0-9._-]{1,128}$/;
  * storage-layer concern (out of scope for this package).
  */
 export function formatIdentifier(parts: ParsedIdentifier): string {
+  const segment = parts.subjectTypeSegment ?? parts.subjectType;
   assertValidNetwork(parts.network);
-  assertValidSubjectType(parts.subjectType);
+  assertValidSubjectType(segment);
+  if (canonicalSubjectType(segment) !== parts.subjectType) {
+    throw new AlmaValidationError(
+      "identifier.subjectType",
+      `segment "${segment}" does not denote subject type "${parts.subjectType}"`
+    );
+  }
   assertValidLocalId(parts.localId);
-  return `alma:${parts.network}:${parts.subjectType}:${parts.localId}`;
+  return `alma:${parts.network}:${segment}:${parts.localId}`;
 }
 
 export function parseIdentifier(id: string): ParsedIdentifier {
@@ -43,11 +68,14 @@ export function parseIdentifier(id: string): ParsedIdentifier {
       `must have the shape "alma:<network>:<subject-type>:<local-id>", got "${id}"`
     );
   }
-  const [, network, subjectType, localId] = segments;
+  const [, network, segment, localId] = segments;
   assertValidNetwork(network);
-  assertValidSubjectType(subjectType);
+  assertValidSubjectType(segment);
   assertValidLocalId(localId);
-  return { network, subjectType: subjectType as SubjectType, localId };
+  const subjectType = canonicalSubjectType(segment) as SubjectType;
+  return segment === subjectType
+    ? { network, subjectType, localId }
+    : { network, subjectType, localId, subjectTypeSegment: segment as SubjectTypeSegment };
 }
 
 export function isValidIdentifier(id: string): boolean {
@@ -68,11 +96,11 @@ function assertValidNetwork(network: string): asserts network is string {
   }
 }
 
-function assertValidSubjectType(subjectType: string): asserts subjectType is SubjectType {
-  if (!SUBJECT_TYPES.includes(subjectType as SubjectType)) {
+function assertValidSubjectType(subjectType: string): asserts subjectType is SubjectTypeSegment {
+  if (canonicalSubjectType(subjectType) === undefined) {
     throw new AlmaValidationError(
       "identifier.subjectType",
-      `must be one of ${SUBJECT_TYPES.join(", ")}, got "${subjectType}"`
+      `must be one of ${[...SUBJECT_TYPES, ...Object.keys(SUBJECT_TYPE_ALIASES)].join(", ")}, got "${subjectType}"`
     );
   }
 }

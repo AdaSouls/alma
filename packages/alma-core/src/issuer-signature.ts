@@ -107,8 +107,8 @@ export class LocalSigner implements IssuerSigner {
   static async fromPkcs8(pkcs8: Uint8Array): Promise<LocalSigner> {
     const privateKey = await subtle().importKey("pkcs8", bytes(pkcs8), ED25519, true, ["sign"]);
     // Web Crypto has no private->public for Ed25519; the JWK export carries both.
-    const { d: _d, key_ops: _ops, ...pub } = await subtle().exportKey("jwk", privateKey);
-    const publicKey = await subtle().importKey("jwk", pub, ED25519, true, ["verify"]);
+    const { kty, crv, x } = await subtle().exportKey("jwk", privateKey);
+    const publicKey = await subtle().importKey("jwk", { kty, crv, x }, ED25519, true, ["verify"]);
     return LocalSigner.from(privateKey, publicKey);
   }
 

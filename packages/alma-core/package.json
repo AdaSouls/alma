@@ -1,6 +1,6 @@
 {
   "name": "@adasouls/alma-core",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "ALMA protocol core: identifiers, Subject/Principal identity, delegation, credentials, the relationship graph, and reputation evidence.",
   "type": "module",
   "main": "./dist/index.js",

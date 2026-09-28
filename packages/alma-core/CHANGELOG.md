@@ -1,5 +1,11 @@
 # @adasouls/alma-core
 
+## 0.4.0
+
+### Minor Changes
+
+- [#7](https://github.com/AdaSouls/alma/pull/7) [`1d9ca1f`](https://github.com/AdaSouls/alma/commit/1d9ca1f3014fb8fa72e1ec2f125f03c68da9748a) Thanks [@MatiFalcone](https://github.com/MatiFalcone)! - Issuer signatures on receipts (ADR-020): Ed25519-signed mint and attestation payloads (`signReceiptMint`, `signReceiptAttestation`), `LocalSigner` and the `IssuerSigner` interface for KMS/HSM signers, key sets with derived key ids (`createIssuerKeyset`, `kidFor`, `toJwks`), and `verifyReceipt`, which checks a receipt end to end and returns only the signed facts.
+
 ## 0.3.0
 
 ### Minor Changes

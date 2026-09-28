@@ -37,6 +37,7 @@ without changing it.
 | Relationships | `createRelationship`, `hasRelationship`, `findPath`, `assertNoDelegationCycle` |
 | Reputation evidence | `recordEvidence` — append-only; evidence, not a score |
 | Receipts | `buildReceiptStatement`, `canonicalizeReceipt`, `receiptDigest`, `generateReceiptSalt`, `toBaseUnits` |
+| Issuer signatures | `signReceiptMint`, `signReceiptAttestation`, `verifyReceipt`, `createIssuerKeyset`, `toJwks`, `LocalSigner`, `IssuerSigner` |
 
 Validation failures throw `AlmaValidationError` naming the field and reason.
 
@@ -66,6 +67,34 @@ const statement = buildReceiptStatement({
 });
 const digest = await receiptDigest(statement); // SHA-256, hex
 ```
+
+## Issuer signatures
+
+The issuer signs what it asserts about a receipt with Ed25519: a **mint**
+("I issued this statement", plus whether the two parties are independent)
+and each **attestation** ("this party confirmed/declined payment or
+delivery, at this time"). Payloads follow the same JCS rules, carry the
+issuer and key id, and are bound to one receipt id and statement digest.
+Signatures are plain RFC 8032 Ed25519, so any signer works: `LocalSigner`
+(Web Crypto) for development, or AWS KMS (`ECC_NIST_EDWARDS25519`,
+`ED25519_SHA_512`, `MessageType: RAW`) behind the `IssuerSigner` interface.
+
+`verifyReceipt` checks everything at once and returns only the signed facts.
+Use those, not your own copy of the data:
+
+```ts
+import { createIssuerKeyset, verifyReceipt } from "@adasouls/alma-core";
+
+// Pin keys from a source you trust (config, a published fingerprint),
+// not from wherever the receipt came from.
+const keyset = await createIssuerKeyset([{ iss: "adasouls", publicKey: "<base64url raw key>" }]);
+const r = await verifyReceipt({ id, statement, mint, payment, delivery }, keyset);
+if (r.ok) r.payload; // { statement, digest, independent, payment, delivery }
+else r.reason;       // e.g. "mint: statement does not match the signed digest"
+```
+
+Key ids are `ed25519-` plus the first 16 bytes of SHA-256 of the public key,
+so a keyset computes them itself.
 
 ## License
 

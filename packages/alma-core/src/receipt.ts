@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { canonicalJson, toHex } from "./canonical.js";
 import { unwrap } from "./errors.js";
 
 /**
@@ -63,12 +64,8 @@ export function buildReceiptStatement(input: BuildReceiptInput): ReceiptStatemen
 
 /** RFC 8785 (JCS). With flat, printable-ASCII string values it reduces to sorted keys + JSON.stringify. */
 export function canonicalizeReceipt(statement: ReceiptStatement): string {
-  const parsed = unwrap(receiptStatementSchema.safeParse(statement), "receiptStatement");
-  const keys = (Object.keys(parsed) as (keyof ReceiptStatement)[]).sort();
-  return `{${keys.map((k) => `${JSON.stringify(k)}:${JSON.stringify(parsed[k])}`).join(",")}}`;
+  return canonicalJson(unwrap(receiptStatementSchema.safeParse(statement), "receiptStatement"));
 }
-
-const toHex = (bytes: Uint8Array) => Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
 
 /** SHA-256 of the canonical encoding, lowercase hex (64 chars). Web Crypto, so it runs in Node and browsers. */
 export async function receiptDigest(statement: ReceiptStatement): Promise<string> {

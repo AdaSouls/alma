@@ -1,5 +1,15 @@
 # @adasouls/alma-core
 
+## 0.3.0
+
+### Minor Changes
+
+- [#5](https://github.com/AdaSouls/alma/pull/5) [`8aca05e`](https://github.com/AdaSouls/alma/commit/8aca05e41abbac874e68786f64a079afbd487679) Thanks [@MatiFalcone](https://github.com/MatiFalcone)! - Open source under MIT and publish to the public npm registry.
+  
+  alma-core: accept `org` as the short form of the `organization` subject type (`alma:main:org:acme-labs`), as the
+  spec's own example and the on-chain AlmaAnchorRegistry already use. Parsing normalizes `subjectType` to
+  `organization` and reports the literal in `subjectTypeSegment`; formatting preserves it, so identifiers round-trip.
+
 ## 0.2.0
 
 ### Minor Changes

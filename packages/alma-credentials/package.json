@@ -1,6 +1,6 @@
 {
   "name": "@adasouls/alma-credentials",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Pluggable credential verification interface for ALMA CredentialEvidence, plus a non-cryptographic reference stub.",
   "type": "module",
   "main": "./dist/index.js",

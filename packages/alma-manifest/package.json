@@ -1,6 +1,6 @@
 {
   "name": "@adasouls/alma-manifest",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Agent Manifest: a portable declarative YAML configuration for an ALMA agent (identity, capabilities, authority, integrations), schema + parser/compiler.",
   "type": "module",
   "main": "./dist/index.js",

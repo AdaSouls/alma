@@ -7,3 +7,4 @@ export * from "./relationship.js";
 export * from "./reputation-evidence.js";
 export * from "./receipt.js";
 export * from "./issuer-signature.js";
+export * from "./transparency-log.js";

@@ -1,5 +1,11 @@
 # @adasouls/alma-core
 
+## 0.5.0
+
+### Minor Changes
+
+- [#10](https://github.com/AdaSouls/alma/pull/10) [`7e084a3`](https://github.com/AdaSouls/alma/commit/7e084a3d40256dbce1698179aeefe3ae6f0fd6f8) Thanks [@MatiFalcone](https://github.com/MatiFalcone)! - Transparency log (ADR-021): RFC 9162 Merkle tree over signed envelopes (`envelopeLeafHash`, `merkleRoot`, frontier append), inclusion and consistency proofs with verification, and signed tree heads (`signTreeHead`, `verifyTreeHead`).
+
 ## 0.4.0
 
 ### Minor Changes

@@ -38,6 +38,7 @@ without changing it.
 | Reputation evidence | `recordEvidence` — append-only; evidence, not a score |
 | Receipts | `buildReceiptStatement`, `canonicalizeReceipt`, `receiptDigest`, `generateReceiptSalt`, `toBaseUnits` |
 | Issuer signatures | `signReceiptMint`, `signReceiptAttestation`, `verifyReceipt`, `createIssuerKeyset`, `toJwks`, `LocalSigner`, `IssuerSigner` |
+| Transparency log | `envelopeLeafHash`, `merkleRoot`, `appendToFrontier`, `inclusionProof`, `verifyInclusion`, `consistencyProof`, `verifyConsistency`, `signTreeHead`, `verifyTreeHead` |
 
 Validation failures throw `AlmaValidationError` naming the field and reason.
 
@@ -95,6 +96,27 @@ else r.reason;       // e.g. "mint: statement does not match the signed digest"
 
 Key ids are `ed25519-` plus the first 16 bytes of SHA-256 of the public key,
 so a keyset computes them itself.
+
+## Transparency log
+
+Signatures catch *edits*; a log catches *deletions*. The issuer appends
+every signed envelope to an append-only Merkle tree (RFC 9162 hashing,
+the Certificate Transparency design) and signs **tree heads** (size +
+root). A party that kept an envelope can prove it's in the log, and
+anyone holding an older tree head can check the log only ever grew:
+
+```ts
+import { envelopeLeafHash, verifyConsistency, verifyInclusion, verifyTreeHead } from "@adasouls/alma-core";
+
+const head = await verifyTreeHead(sth, keyset, "adasouls-receipts-mainnet");
+if (!head.ok) throw new Error(head.reason);
+const { treeSize, rootHash } = head.payload; // always use size and root together
+await verifyInclusion(await envelopeLeafHash(envelope), index, treeSize, proof, rootHash);
+await verifyConsistency(oldSize, treeSize, oldRoot, rootHash, consistency); // nothing removed or rewritten
+```
+
+A leaf commits to the envelope's signature, so a published leaf hash
+reveals nothing about a receipt to anyone who doesn't already hold it.
 
 ## License
 

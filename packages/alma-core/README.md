@@ -38,6 +38,7 @@ without changing it.
 | Reputation evidence | `recordEvidence` — append-only; evidence, not a score |
 | Receipts | `buildReceiptStatement`, `canonicalizeReceipt`, `receiptDigest`, `generateReceiptSalt`, `toBaseUnits` |
 | Issuer signatures | `signReceiptMint`, `signReceiptAttestation`, `verifyReceipt`, `createIssuerKeyset`, `toJwks`, `LocalSigner`, `IssuerSigner` |
+| Agent reports | `signAgentReport`, `verifyAgentReport`, `AGENT_REPORT_METRICS` |
 | Transparency log | `envelopeLeafHash`, `merkleRoot`, `appendToFrontier`, `inclusionProof`, `verifyInclusion`, `consistencyProof`, `verifyConsistency`, `signTreeHead`, `verifyTreeHead` |
 
 Validation failures throw `AlmaValidationError` naming the field and reason.
@@ -117,6 +118,30 @@ await verifyConsistency(oldSize, treeSize, oldRoot, rootHash, consistency); // n
 
 A leaf commits to the envelope's signature, so a published leaf hash
 reveals nothing about a receipt to anyone who doesn't already hold it.
+
+## Agent reports
+
+Some figures only the agent knows: what a piece of work cost it to
+compute, which model did it. The protocol asks the agent to report them,
+and the issuer signs each one as an `alma-agent-report/1` envelope:
+"this agent declared this figure, about this action or job, at this
+time". It goes into the same transparency log as receipts.
+
+```ts
+import { verifyAgentReport } from "@adasouls/alma-core";
+
+const report = await verifyAgentReport(envelope, keyset);
+if (!report.ok) throw new Error(report.reason);
+const { agent, about, ref, metric, value, unit, reportedAt } = report.payload;
+```
+
+Metrics in v1: `compute_cost` (a decimal plus a currency `unit`),
+`model`, `input_tokens`, `output_tokens`, `duration_ms`.
+
+A verified report proves **who declared what and when**, and the log
+proves the declaration was never changed or removed. Neither proves the
+figure is true: show it as declared by the agent, apart from what the
+issuer verified itself.
 
 ## License
 

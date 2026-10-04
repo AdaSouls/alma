@@ -1,5 +1,11 @@
 # @adasouls/alma-core
 
+## 0.7.0
+
+### Minor Changes
+
+- [#14](https://github.com/AdaSouls/alma/pull/14) [`c07b84f`](https://github.com/AdaSouls/alma/commit/c07b84f5674b1755ccf9a8e6bf4adc19f3c25dac) Thanks [@MatiFalcone](https://github.com/MatiFalcone)! - Job deliveries: `alma-job-delivery/1` envelopes (`signJobDelivery`, `verifyJobDelivery`) record that a hired agent returned a result, by its digest; `envelopeLeafHash` accepts them. `jsonDigest` and `canonicalJsonValue` give the RFC 8785 canonical form and SHA-256 of any JSON value.
+
 ## 0.6.0
 
 ### Minor Changes

@@ -119,7 +119,39 @@ export const agentReportPayloadSchema = z
   });
 export type AgentReportPayload = z.infer<typeof agentReportPayloadSchema>;
 
-export type IssuerPayload = ReceiptMintPayload | ReceiptAttestationPayload | AgentReportPayload;
+/**
+ * A hired agent delivered: the issuer, which called the seller and got
+ * its answer, signs "this agent returned a result with this digest for
+ * this job, at this time". The result itself stays between the two
+ * parties; `resultDigest` (jsonDigest of it) lets either of them, or
+ * anyone they show it to, check that a result is the one delivered.
+ *
+ * It names the seller and not the buyer, so a seller's deliveries can
+ * be public without exposing who hired it. It says the work was handed
+ * over, not that it was good: that is the buyer's delivery attestation
+ * on the receipt.
+ */
+export const JOB_DELIVERY_TYPE = "alma-job-delivery/1";
+
+export const jobDeliveryPayloadSchema = z
+  .object({
+    t: z.literal(JOB_DELIVERY_TYPE),
+    iss: ascii,
+    kid,
+    job: ascii,
+    /** The ALMA id of the agent that did the work. */
+    seller: ascii,
+    /** Which of its services was hired. */
+    service: ascii.max(64),
+    /** The economic action that paid for it; its receipt is where the buyer says whether it was as agreed. */
+    action: ascii,
+    resultDigest: digest,
+    deliveredAt: timestamp,
+  })
+  .strict();
+export type JobDeliveryPayload = z.infer<typeof jobDeliveryPayloadSchema>;
+
+export type IssuerPayload = ReceiptMintPayload | ReceiptAttestationPayload | AgentReportPayload | JobDeliveryPayload;
 
 export interface IssuerEnvelope<P extends IssuerPayload = IssuerPayload> {
   payload: P;
@@ -262,6 +294,21 @@ export async function signAgentReport(signer: IssuerSigner, input: SignAgentRepo
   return signPayload(signer, payload);
 }
 
+export interface SignJobDeliveryInput {
+  iss: string;
+  job: string;
+  seller: string;
+  service: string;
+  action: string;
+  resultDigest: string;
+  deliveredAt: Date;
+}
+
+export async function signJobDelivery(signer: IssuerSigner, input: SignJobDeliveryInput): Promise<IssuerEnvelope<JobDeliveryPayload>> {
+  const payload = unwrap(jobDeliveryPayloadSchema.safeParse({ t: JOB_DELIVERY_TYPE, ...input, kid: signer.kid, deliveredAt: toSeconds(input.deliveredAt) }), "jobDelivery");
+  return signPayload(signer, payload);
+}
+
 /** A trusted issuer key: which issuer it signs for and its raw Ed25519 public key (base64url). */
 export interface IssuerKeyConfig {
   iss: string;
@@ -317,6 +364,8 @@ async function verifyEnvelope<P extends IssuerPayload>(envelope: unknown, schema
 
 export const verifyReceiptMint = (envelope: unknown, keyset: IssuerKeyset) => verifyEnvelope(envelope, receiptMintPayloadSchema, keyset);
 export const verifyReceiptAttestation = (envelope: unknown, keyset: IssuerKeyset) => verifyEnvelope(envelope, receiptAttestationPayloadSchema, keyset);
+/** That the issuer recorded this delivery. To check a result against it, compare jsonDigest(result) with `resultDigest`. */
+export const verifyJobDelivery = (envelope: unknown, keyset: IssuerKeyset) => verifyEnvelope(envelope, jobDeliveryPayloadSchema, keyset);
 /** That the issuer recorded this declaration by this agent. Says nothing about whether the figure is true. */
 export const verifyAgentReport = (envelope: unknown, keyset: IssuerKeyset) => verifyEnvelope(envelope, agentReportPayloadSchema, keyset);
 

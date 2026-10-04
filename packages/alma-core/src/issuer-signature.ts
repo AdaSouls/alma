@@ -62,7 +62,64 @@ export const receiptAttestationPayloadSchema = z
   .strict();
 export type ReceiptAttestationPayload = z.infer<typeof receiptAttestationPayloadSchema>;
 
-export type IssuerPayload = ReceiptMintPayload | ReceiptAttestationPayload;
+/**
+ * A figure only the agent knows (what it spent on compute, which model it
+ * used), reported by the agent about one of its actions or jobs. The
+ * issuer signs "this agent declared this, at this time" -- not that it is
+ * true. Once logged, a declaration can't be edited, removed or backdated,
+ * so anyone can tell a declared figure from a verified one and check that
+ * it never changed.
+ *
+ * One metric per envelope, so payloads stay flat. `unit` is present only
+ * for metrics that have one.
+ */
+export const AGENT_REPORT_TYPE = "alma-agent-report/1";
+
+const integer = /^(0|[1-9][0-9]*)$/;
+/** What an agent can report in v1, and the shape of each value. */
+export const AGENT_REPORT_METRICS = {
+  /** What the work cost the agent to compute. A decimal in `unit`, a currency code ("USD"). */
+  compute_cost: { value: /^(0|[1-9][0-9]*)(\.[0-9]{1,18})?$/, unit: /^[A-Z][A-Z0-9]{1,9}$/ },
+  /** The model that did the work, as its provider names it. */
+  model: { value: /^[\x21-\x7e][\x20-\x7e]{0,127}$/, unit: null },
+  input_tokens: { value: integer, unit: null },
+  output_tokens: { value: integer, unit: null },
+  duration_ms: { value: integer, unit: null },
+} as const satisfies Record<string, { value: RegExp; unit: RegExp | null }>;
+export type AgentReportMetric = keyof typeof AGENT_REPORT_METRICS;
+export const AGENT_REPORT_METRIC_NAMES = Object.keys(AGENT_REPORT_METRICS) as [AgentReportMetric, ...AgentReportMetric[]];
+export const AGENT_REPORT_SUBJECTS = ["action", "job"] as const;
+export type AgentReportSubject = (typeof AGENT_REPORT_SUBJECTS)[number];
+
+export const agentReportPayloadSchema = z
+  .object({
+    t: z.literal(AGENT_REPORT_TYPE),
+    iss: ascii,
+    kid,
+    report: ascii,
+    /** The ALMA id of the agent that declared it. */
+    agent: ascii,
+    /** What the figure is about: one of the agent's actions, or a job it was hired for. */
+    about: z.enum(AGENT_REPORT_SUBJECTS),
+    ref: ascii,
+    metric: z.enum(AGENT_REPORT_METRIC_NAMES),
+    value: ascii.max(128),
+    unit: ascii.max(10).optional(),
+    reportedAt: timestamp,
+  })
+  .strict()
+  .superRefine((p, ctx) => {
+    const rule = AGENT_REPORT_METRICS[p.metric];
+    if (!rule.value.test(p.value)) ctx.addIssue({ code: "custom", path: ["value"], message: `not a valid ${p.metric}` });
+    if (rule.unit === null) {
+      if (p.unit !== undefined) ctx.addIssue({ code: "custom", path: ["unit"], message: `${p.metric} has no unit` });
+    } else if (p.unit === undefined || !rule.unit.test(p.unit)) {
+      ctx.addIssue({ code: "custom", path: ["unit"], message: `${p.metric} needs a unit` });
+    }
+  });
+export type AgentReportPayload = z.infer<typeof agentReportPayloadSchema>;
+
+export type IssuerPayload = ReceiptMintPayload | ReceiptAttestationPayload | AgentReportPayload;
 
 export interface IssuerEnvelope<P extends IssuerPayload = IssuerPayload> {
   payload: P;
@@ -177,6 +234,34 @@ export async function signReceiptAttestation(
   return signPayload(signer, payload);
 }
 
+export interface SignAgentReportInput {
+  iss: string;
+  report: string;
+  agent: string;
+  about: AgentReportSubject;
+  ref: string;
+  metric: AgentReportMetric;
+  value: string;
+  unit?: string;
+  reportedAt: Date;
+}
+
+export async function signAgentReport(signer: IssuerSigner, input: SignAgentReportInput): Promise<IssuerEnvelope<AgentReportPayload>> {
+  const { unit, ...rest } = input;
+  const payload = unwrap(
+    agentReportPayloadSchema.safeParse({
+      t: AGENT_REPORT_TYPE,
+      ...rest,
+      // An absent unit is an absent key: `undefined` has no canonical form.
+      ...(unit === undefined ? {} : { unit }),
+      kid: signer.kid,
+      reportedAt: toSeconds(input.reportedAt),
+    }),
+    "agentReport"
+  );
+  return signPayload(signer, payload);
+}
+
 /** A trusted issuer key: which issuer it signs for and its raw Ed25519 public key (base64url). */
 export interface IssuerKeyConfig {
   iss: string;
@@ -232,6 +317,8 @@ async function verifyEnvelope<P extends IssuerPayload>(envelope: unknown, schema
 
 export const verifyReceiptMint = (envelope: unknown, keyset: IssuerKeyset) => verifyEnvelope(envelope, receiptMintPayloadSchema, keyset);
 export const verifyReceiptAttestation = (envelope: unknown, keyset: IssuerKeyset) => verifyEnvelope(envelope, receiptAttestationPayloadSchema, keyset);
+/** That the issuer recorded this declaration by this agent. Says nothing about whether the figure is true. */
+export const verifyAgentReport = (envelope: unknown, keyset: IssuerKeyset) => verifyEnvelope(envelope, agentReportPayloadSchema, keyset);
 
 export interface SignedReceipt {
   id: string;

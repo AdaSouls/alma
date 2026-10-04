@@ -1,5 +1,11 @@
 # @adasouls/alma-core
 
+## 0.6.0
+
+### Minor Changes
+
+- [#12](https://github.com/AdaSouls/alma/pull/12) [`7b64879`](https://github.com/AdaSouls/alma/commit/7b64879a3341652c90c3c197258b38484e23ba07) Thanks [@MatiFalcone](https://github.com/MatiFalcone)! - Agent reports: figures only the agent knows (compute cost, model, tokens, duration), declared by the agent and signed by the issuer as `alma-agent-report/1` envelopes (`signAgentReport`, `verifyAgentReport`). `envelopeLeafHash` accepts them, so they enter the transparency log next to receipts.
+
 ## 0.5.0
 
 ### Minor Changes

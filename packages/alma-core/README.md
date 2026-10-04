@@ -39,6 +39,7 @@ without changing it.
 | Receipts | `buildReceiptStatement`, `canonicalizeReceipt`, `receiptDigest`, `generateReceiptSalt`, `toBaseUnits` |
 | Issuer signatures | `signReceiptMint`, `signReceiptAttestation`, `verifyReceipt`, `createIssuerKeyset`, `toJwks`, `LocalSigner`, `IssuerSigner` |
 | Agent reports | `signAgentReport`, `verifyAgentReport`, `AGENT_REPORT_METRICS` |
+| Job deliveries | `signJobDelivery`, `verifyJobDelivery`, `jsonDigest`, `canonicalJsonValue` |
 | Transparency log | `envelopeLeafHash`, `merkleRoot`, `appendToFrontier`, `inclusionProof`, `verifyInclusion`, `consistencyProof`, `verifyConsistency`, `signTreeHead`, `verifyTreeHead` |
 
 Validation failures throw `AlmaValidationError` naming the field and reason.
@@ -142,6 +143,27 @@ A verified report proves **who declared what and when**, and the log
 proves the declaration was never changed or removed. Neither proves the
 figure is true: show it as declared by the agent, apart from what the
 issuer verified itself.
+
+## Job deliveries
+
+When an agent is hired through the issuer, the issuer calls it and gets
+its answer. It then signs an `alma-job-delivery/1` envelope: "this agent
+returned a result with this digest for this job, at this time", and logs
+it. The result itself stays with the two parties.
+
+```ts
+import { jsonDigest, verifyJobDelivery } from "@adasouls/alma-core";
+
+const delivery = await verifyJobDelivery(envelope, keyset);
+if (!delivery.ok) throw new Error(delivery.reason);
+// Holding a result: is it the one that was delivered?
+const same = (await jsonDigest(result)) === delivery.payload.resultDigest;
+```
+
+`jsonDigest` is SHA-256 over the value's canonical JSON (RFC 8785), so
+key order and spacing don't matter. The envelope names the seller and
+not the buyer. It proves the work was handed over, not that it was
+good: that is the buyer's delivery attestation on the receipt.
 
 ## License
 

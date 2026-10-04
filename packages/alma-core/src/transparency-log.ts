@@ -4,6 +4,7 @@ import { AlmaValidationError, unwrap } from "./errors.js";
 import {
   ISSUER_SIGNATURE_ALG,
   agentReportPayloadSchema,
+  jobDeliveryPayloadSchema,
   receiptAttestationPayloadSchema,
   receiptMintPayloadSchema,
   type IssuerKeyset,
@@ -61,13 +62,13 @@ const envelopeSchema = z.object({ payload: z.unknown(), alg: z.literal(ISSUER_SI
 export function envelopeLeafData(envelope: unknown): Uint8Array {
   const env = unwrap(envelopeSchema.safeParse(envelope), "envelope");
   // Each payload type has its own `t`, so at most one schema accepts it.
-  const known = [receiptMintPayloadSchema, receiptAttestationPayloadSchema, agentReportPayloadSchema] as const;
+  const known = [receiptMintPayloadSchema, receiptAttestationPayloadSchema, agentReportPayloadSchema, jobDeliveryPayloadSchema] as const;
   let payload: Record<string, string> | undefined;
   for (const schema of known) {
     const parsed = schema.safeParse(env.payload);
     if (parsed.success) payload = parsed.data;
   }
-  if (payload === undefined) throw new AlmaValidationError("envelope.payload", "must be a receipt mint, a receipt attestation or an agent report");
+  if (payload === undefined) throw new AlmaValidationError("envelope.payload", "must be a receipt mint, a receipt attestation, an agent report or a job delivery");
   if (!fromBase64Url(env.sig)) throw new Error("envelope.sig: must be base64url");
   return new TextEncoder().encode(`{"alg":${JSON.stringify(env.alg)},"payload":${canonicalJson(payload)},"sig":${JSON.stringify(env.sig)}}`);
 }

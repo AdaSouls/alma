@@ -1,5 +1,5 @@
 import { basename } from "node:path";
-import { createDelegation, createIdentity, AlmaValidationError, type AlmaIdentity, type Controller } from "@adasouls/alma-core";
+import { almaIdentitySchema, createDelegation, createIdentity, AlmaValidationError, type AlmaIdentity, type Controller } from "@adasouls/alma-core";
 import { detectRuntime } from "../lib/detect-runtime.js";
 import { emptyLog, ignoreIssuerKey, loadOrCreateIssuer } from "../lib/history.js";
 import { DEFAULTS, constraintsOf, describeLimits, limitsFromFlags, manifestOf, readManifest, writeManifest, type LimitFlags, type Limits } from "../lib/limits.js";
@@ -39,6 +39,20 @@ export async function connectCommand(opts: ConnectOptions): Promise<void> {
   if (existing && !opts.force) {
     identity = existing;
     ok(`Already has an ALMA identity: ${existing.id}`);
+    // The identity is kept, and a wallet or DID passed now is added to it: this is how a wallet gets bound after the first run.
+    const asked: Controller[] = [...(opts.wallet ? [{ type: "wallet" as const, value: opts.wallet }] : []), ...(opts.did ? [{ type: "did" as const, value: opts.did }] : [])];
+    const added = asked.filter((a) => !existing.controllers.some((c) => c.type === a.type && c.value.toLowerCase() === a.value.toLowerCase()));
+    if (added.length) {
+      const bound = almaIdentitySchema.safeParse({ ...existing, controllers: [...existing.controllers, ...added] });
+      if (!bound.success) {
+        fail("That wallet or DID can't be bound to the identity");
+        process.exitCode = 1;
+        return;
+      }
+      identity = bound.data;
+      writeIdentity(cwd, identity);
+      for (const c of added) ok(`Bound ${c.type} ${c.value} to the identity`);
+    }
   } else {
     ok(`Agent runtime detected: ${detectRuntime(cwd)}`);
     const defaultName = basename(cwd);

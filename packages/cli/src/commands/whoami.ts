@@ -1,7 +1,9 @@
-import { readIdentity, readDelegations, readEvidence } from "../lib/project-store.js";
+import { loadIssuer, signedHead } from "../lib/history.js";
+import { describeLimits, readManifest } from "../lib/limits.js";
+import { readIdentity, readDelegations, readEvidence, readReceipts } from "../lib/project-store.js";
 import { bold, dim, fail } from "../lib/format.js";
 
-export function whoamiCommand(): void {
+export async function whoamiCommand(): Promise<void> {
   const cwd = process.cwd();
   const identity = readIdentity(cwd);
   if (!identity) {
@@ -34,9 +36,38 @@ export function whoamiCommand(): void {
   }
   console.log();
 
+  // What it may spend: declared in ./alma.yaml.
+  try {
+    const manifest = readManifest(cwd);
+    if (manifest) {
+      console.log("My declared limits:");
+      for (const line of describeLimits(manifest)) console.log(`  • ${line}`);
+      // Nothing here has checked what enforces them, so the honest level is the lowest one.
+      console.log(`  • Enforcement: advisory ${dim("(until `npx @adasouls/alma-verifier doctor` says otherwise)")}`);
+    } else {
+      console.log(dim("No limits declared yet — run `alma connect` or `alma limits`."));
+    }
+  } catch (err) {
+    console.log(dim(`./alma.yaml isn't a valid manifest: ${err instanceof Error ? err.message : String(err)}`));
+  }
+  console.log();
+
+  // What it signed itself.
+  const receipts = readReceipts(cwd);
+  const signer = await loadIssuer(cwd);
+  if (signer) {
+    const head = await signedHead(cwd, identity.id, signer);
+    console.log("My signed history (self-attested):");
+    console.log(`  • ${receipts.length} signed receipt${receipts.length === 1 ? "" : "s"}`);
+    console.log(`  • Log head: ${head.payload.treeSize} entr${Number(head.payload.treeSize) === 1 ? "y" : "ies"}, root ${head.payload.rootHash.slice(0, 16)}…, key ${head.payload.kid}`);
+  } else {
+    console.log(dim("No signed history yet — run `alma connect` to create this project's signing key."));
+  }
+  console.log();
+
   const evidence = readEvidence(cwd).filter((e) => e.subject === identity.id);
   if (evidence.length) {
-    console.log("My economic history:");
+    console.log("Notes I recorded (unsigned):");
     console.log(`  • ${evidence.length} recorded action${evidence.length === 1 ? "" : "s"}`);
     const outcomes = evidence.reduce<Record<string, number>>((acc, e) => {
       acc[e.outcome] = (acc[e.outcome] ?? 0) + 1;
@@ -53,6 +84,6 @@ export function whoamiCommand(): void {
     }, 0);
     if (total > 0) console.log(`  • ${total} settled (recorded via \`alma evidence add\`)`);
   } else {
-    console.log(dim("No economic history recorded yet — run `alma evidence add` to record some."));
+    console.log(dim("No unsigned notes recorded."));
   }
 }

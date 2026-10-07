@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { AlmaIdentity, Delegation, ReputationEvidence } from "@adasouls/alma-core";
 
@@ -67,4 +67,69 @@ export function addEvidence(cwd: string, evidence: ReputationEvidence): void {
   writeJson(evidencePath(cwd), [...all, evidence]);
 }
 
+export function writeDelegations(cwd: string, delegations: Delegation[]): void {
+  ensureDir(cwd);
+  writeJson(delegationsPath(cwd), delegations);
+}
+
+/** The agent's declared limits, next to its code: the file a person reads and reviews. */
+export function manifestPath(cwd: string): string {
+  return join(cwd, "alma.yaml");
+}
+export function issuerKeyPath(cwd: string): string {
+  return join(dir(cwd), "issuer.key");
+}
+export function logPath(cwd: string): string {
+  return join(dir(cwd), "log.json");
+}
+export function receiptsPath(cwd: string): string {
+  return join(dir(cwd), "receipts.jsonl");
+}
+
+export function readManifestText(cwd: string): string | undefined {
+  return existsSync(manifestPath(cwd)) ? readFileSync(manifestPath(cwd), "utf-8") : undefined;
+}
+export function writeManifestText(cwd: string, yaml: string): void {
+  writeFileSync(manifestPath(cwd), yaml, "utf-8");
+}
+
+/** The local transparency log: its right edge (enough to extend it and compute its root) and every leaf, for proofs. */
+export interface LocalLog {
+  log: string;
+  size: number;
+  /** Subtree roots, hex, leftmost first (alma-core's Frontier). */
+  frontier: string[];
+  /** Leaf hashes, hex, in position order. */
+  leaves: string[];
+}
+
+export function readLog(cwd: string): LocalLog | undefined {
+  return readJson<LocalLog>(logPath(cwd));
+}
+export function writeLog(cwd: string, log: LocalLog): void {
+  ensureDir(cwd);
+  writeJson(logPath(cwd), log);
+}
+
+/** A receipt this project signed itself. `selfAttested` is always true here: nobody else vouched for it. */
+export interface LocalReceipt {
+  id: string;
+  statement: unknown;
+  mint: unknown;
+  selfAttested: true;
+}
+
+export function readReceipts(cwd: string): LocalReceipt[] {
+  if (!existsSync(receiptsPath(cwd))) return [];
+  return readFileSync(receiptsPath(cwd), "utf-8")
+    .split("\n")
+    .filter((line) => line.trim() !== "")
+    .map((line) => JSON.parse(line) as LocalReceipt);
+}
+export function appendReceipt(cwd: string, receipt: LocalReceipt): void {
+  ensureDir(cwd);
+  appendFileSync(receiptsPath(cwd), JSON.stringify(receipt) + "\n", "utf-8");
+}
+
+export { ensureDir };
 export const STORE_DIR_NAME = DIR_NAME;

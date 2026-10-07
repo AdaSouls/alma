@@ -1,7 +1,7 @@
 {
   "name": "@adasouls/alma-cli",
   "version": "0.1.0",
-  "description": "Command-line onboarding for the ALMA protocol: give your agent a portable economic identity from the terminal.",
+  "description": "Command-line onboarding for the ALMA protocol: give a working agent an identity, declared limits and a signed history from the terminal.",
   "type": "module",
   "bin": {
     "alma": "./dist/bin.js"
@@ -18,6 +18,7 @@
   },
   "dependencies": {
     "@adasouls/alma-core": "*",
+    "@adasouls/alma-manifest": "*",
     "commander": "^12.1.0"
   },
   "devDependencies": {

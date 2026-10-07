@@ -1,26 +1,52 @@
 # @adasouls/alma-cli
 
-Give your agent a portable ALMA identity from the terminal.
+Give a working agent an ALMA identity, declared limits and a signed
+history, from the terminal, in one run.
 
 ```bash
-npx @adasouls/alma-cli connect
+npx @adasouls/alma-cli connect --org alma:main:org:acme-labs --wallet 0x8F12...21Cd \
+  --capabilities pay --max-tx USDC=100 --daily USDC=500 --approve-above USDC=50 -y
 ```
 
 ```text
-Connecting your agent to AdaSouls...
+Connecting your agent to ALMA...
 
-✓ Agent runtime detected: OpenAI Agents SDK
+✓ Agent runtime detected: Claude / Anthropic SDK
 ✓ ALMA identity created
-✓ Linked to principal alma:main:org:acme-labs
 ✓ Bound 1 controller(s)
-○ Developer authentication (needs a hosted AdaSouls API — not built yet)
-○ MCP connection (needs adasouls-mcp — not built yet)
-○ Economic API connection (needs adasouls-api — not built yet)
-
-Your agent now has a portable ALMA identity.
+✓ Linked to principal alma:main:org:acme-labs
+✓ Limits declared in ./alma.yaml
+    Capabilities: pay
+    Per transaction: 100 USDC
+    Per day: 500 USDC
+    A person approves above: 50 USDC
+    Assets: USDC
+✓ alma:main:org:acme-labs delegates [pay] with those limits, until 2027-01-05
+✓ Signing key created in ./.alma/issuer.key (key id ed25519-c35485e9338292ab6931da71059f1fea)
+✓ Added .alma/issuer.key to .gitignore
+✓ Empty signed history started in ./.alma/log.json
+○ Route through AdaSouls (needs a running adasouls-api): payments are checked before anything is signed
+    To do it over MCP, add this server to your client's configuration:
+    {
+      "mcpServers": {
+        "adasouls": {
+          "command": "npx",
+          "args": [
+            "-y",
+            "@adasouls/mcp"
+          ],
+          "env": {
+            "ADASOULS_API_KEY": "<your agent's api key>",
+            "ADASOULS_API_URL": "http://localhost:3000/v1"
+          }
+        }
+      }
+    }
 
 ALMA ID:
-alma:main:agent:treasury-agent
+alma:main:agent:demo-treasury-agent
+
+Limits: declared (advisory). Run npx @adasouls/alma-verifier doctor to see what would enforce them.
 ```
 
 Then ask it who it is:
@@ -30,64 +56,85 @@ npx @adasouls/alma-cli whoami
 ```
 
 ```text
-I am alma:main:agent:treasury-agent.
+I am alma:main:agent:demo-treasury-agent.
 I represent alma:main:org:acme-labs.
 
 I am authorized to:
   • pay
-  • swap
 
 My identity is linked to:
-  • wallet: 0x8F1234567890abcdef1234567890ABCDEF21C
+  • wallet: 0x8F1234567890abcdef1234567890ABCDEF1221Cd
 
-My economic history:
-  • 3 recorded actions
-  • 2 success, 1 disputed
-  • 2 distinct counterparties
-  • 2140 settled (recorded via `alma evidence add`)
+My declared limits:
+  • Capabilities: pay
+  • Per transaction: 100 USDC
+  • Per day: 300 USDC
+  • A person approves above: 50 USDC
+  • Assets: USDC
+  • Enforcement: advisory (until `npx @adasouls/alma-verifier doctor` says otherwise)
+
+My signed history (self-attested):
+  • 1 signed receipt
+  • Log head: 1 entry, root 79411ea4750c7eaa…, key ed25519-c35485e9338292ab6931da71059f1fea
+
+No unsigned notes recorded.
 ```
 
 ## What this actually is
 
-A **local-only, ALMA-protocol-only** CLI. It has no server of its own —
-state lives in `./.alma/` in whatever project you run it from, the same
-way `.git` does. `alma connect` doesn't create "another wallet identity";
-it creates the persistent economic actor (an ALMA Subject) that wallets,
-DIDs, credentials, and delegations get bound to afterward. See the ALMA
-whitepaper for why that distinction matters.
+A **local** CLI. It has no server: state lives in `./.alma/` and the
+limits in `./alma.yaml`, in whatever project you run it from, the way
+`.git` does. `alma connect` doesn't create "another wallet identity"; it
+creates the persistent economic actor (an ALMA Subject) that wallets,
+DIDs, credentials and delegations get bound to. See the ALMA whitepaper
+for why that distinction matters.
 
-## `○` markers are not bugs
+Three things to keep in mind about what it writes:
 
-Some `connect` output lines are dim `○`, not green `✓` — those steps
-(developer auth, MCP, the Economic API) need `adasouls-api` /
-`adasouls-mcp`, which don't exist yet in this workspace. This CLI never
-prints a `✓` for something it didn't actually do.
+- **Limits are declared, not enforced.** They are configuration the
+  agent's own code may or may not consult. What makes limits hold is
+  where the agent's keys live: a service that checks before anything is
+  signed, or the chain itself. `connect` ends by saying so.
+- **History is self-attested.** The project signs its own receipts with
+  its own key (`.alma/issuer.key`, readable by you only, kept out of
+  git). That shows a record wasn't edited afterwards. It never counts as
+  confirmed by the counterparty.
+- **`○` lines are not bugs.** A dim `○` is a step this command didn't
+  do. It never prints a `✓` for something that didn't happen.
 
 ## Commands
 
 | Command | Does |
 |---|---|
-| `alma connect [--agent] [--org] [--wallet] [--did] [-y] [--force]` | Create this project's ALMA identity (real: `alma-core`). |
+| `alma connect [--agent] [--org] [--wallet] [--did] [limits] [--write-mcp-config] [-y] [--force]` | Identity, then limits (a delegation with constraints and an expiry, and `alma.yaml`), then a signing key and an empty log. Safe to run again: it keeps what is there. |
+| `alma limits [limits]` | Show the declared limits, or change them. A change issues a new delegation and revokes the old one; nothing is edited in place. |
 | `alma delegate --capabilities <list> [--issuer] [--subject] [--proof-format] [--proof-reference]` | Grant capabilities to this project's agent. |
-| `alma evidence add --outcome <success\|failure\|disputed> [--counterparty] [--amount] [--role] [--source-type]` | Record reputation evidence you attest to — not a live feed. |
-| `alma whoami` | The agent introspects its own local ALMA record. |
+| `alma evidence add --outcome <success\|failure\|disputed> [...]` | With `--tx-hash --chain --asset --to --counterparty --amount`: a signed receipt in the project's log. Otherwise an unsigned note. |
+| `alma log head [--json]` | The signed head of the history (size and root), to share or anchor. |
+| `alma whoami` | The agent describes itself: authority, limits, signed history and its enforcement level. |
 
-## Non-interactive / CI
+Limits flags: `--capabilities pay,swap`, `--max-tx USDC=100`,
+`--daily USDC=500`, `--approve-above USDC=50`, `--assets USDC`,
+`--counterparty-min-tx 1`, `--expires 90d`. Anything not passed is asked
+for with a default; `-y` takes the defaults without asking.
 
-```bash
-npx @adasouls/alma-cli connect --agent treasury-agent --org alma:main:org:acme-labs --yes
-```
+`--amount` for a signed receipt is a whole number in the asset's base
+units (5 USDC is `5000000`), and `--chain` / `--asset` are CAIP-2 /
+CAIP-19 ids, as in every ALMA receipt.
 
-## Planned, not built — do not confuse these with the commands above
+## Routing through AdaSouls
 
-The full AdaSouls platform CLI vision (`docs/21-developer-experience.md`
-in the architecture workspace) includes `status`, `doctor`, `agent
-connect`, `policy set`, `wallet connect`, `marketplace publish`, and
-authenticated, multi-device identity via a real `adasouls-api`. None of
-that is implemented here — it needs the hosted backend (roadmap Phases
-3–14), not just the protocol library. This package may be absorbed into
-a broader `@adasouls/cli` once that exists, rather than growing those
-commands here as stubs.
+`connect` detects the MCP clients configured on the machine (a project's
+`.mcp.json`, Cursor, Claude Desktop) and prints the server entry for
+[`@adasouls/mcp`](https://www.npmjs.com/package/@adasouls/mcp). It writes
+to those files only with `--write-mcp-config`, and never over an existing
+entry. Routing needs a running `adasouls-api`.
+
+## Not here
+
+`alma doctor` lives in `@adasouls/alma-verifier`, which answers "what
+enforces these limits?" for an agent. Wallet, policy and marketplace
+management are the AdaSouls platform's, not this CLI's.
 
 ## Development
 

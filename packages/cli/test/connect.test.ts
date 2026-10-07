@@ -96,6 +96,21 @@ describe("alma connect", () => {
     expect(text()).toContain("Limits already declared");
   });
 
+  it("run again with --wallet, it binds that wallet to the identity it already has, once", async () => {
+    await connect();
+    const first = readIdentity(dir)!;
+    expect(first.controllers).toEqual([]);
+    out.length = 0;
+    await connect({ wallet: "0x8F1234567890abcdef1234567890ABCDEF1221Cd" });
+    expect(readIdentity(dir)).toEqual({ ...first, controllers: [{ type: "wallet", value: "0x8F1234567890abcdef1234567890ABCDEF1221Cd" }] });
+    expect(text()).toContain("✓ Bound wallet 0x8F1234567890abcdef1234567890ABCDEF1221Cd to the identity");
+    // The same wallet again, in another letter case, isn't added twice and prints no check.
+    out.length = 0;
+    await connect({ wallet: "0x8f1234567890abcdef1234567890abcdef1221cd" });
+    expect(readIdentity(dir)!.controllers).toHaveLength(1);
+    expect(text()).not.toContain("Bound wallet");
+  });
+
   it("refuses limits it can't read, with what is wrong", async () => {
     for (const bad of [{ maxTx: "a lot" }, { daily: "USDC" }, { expires: "soon" }, { expires: "2000-01-01" }, { counterpartyMinTx: "1.5" }]) {
       process.chdir(mkdtempSync(join(tmpdir(), "alma-cli-")));

@@ -106,7 +106,7 @@ Three things to keep in mind about what it writes:
 
 | Command | Does |
 |---|---|
-| `alma connect [--agent] [--org] [--wallet] [--did] [limits] [--write-mcp-config] [-y] [--force]` | Identity, then limits (a delegation with constraints and an expiry, and `alma.yaml`), then a signing key and an empty log. Safe to run again: it keeps what is there. |
+| `alma connect [--agent] [--org] [--wallet] [--did] [limits] [--write-mcp-config] [-y] [--force]` | Identity, then limits (a delegation with constraints and an expiry, and `alma.yaml`), then a signing key and an empty log. Safe to run again: it keeps what is there, and a `--wallet` or `--did` passed then is added to the identity. A verifier only counts a wallet's protection for an agent whose identity names that wallet. |
 | `alma limits [limits]` | Show the declared limits, or change them. A change issues a new delegation and revokes the old one; nothing is edited in place. |
 | `alma delegate --capabilities <list> [--issuer] [--subject] [--proof-format] [--proof-reference]` | Grant capabilities to this project's agent. |
 | `alma evidence add --outcome <success\|failure\|disputed> [...]` | With `--tx-hash --chain --asset --to --counterparty --amount`: a signed receipt in the project's log. Otherwise an unsigned note. |

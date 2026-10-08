@@ -1,19 +1,43 @@
 @import "tailwindcss";
 
 @theme {
-  --font-display: var(--font-fraunces), Georgia, "Times New Roman", serif;
-  --font-sans: var(--font-public-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-sans: var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --font-mono: var(--font-plex-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
 
-  --color-paper: #f5f7fa;
-  --color-paper-raised: #ffffff;
-  --color-ink: #171b2b;
-  --color-ink-soft: #576073;
-  --color-accent: #1c9a90;
-  --color-accent-text: #127d74;
-  --color-accent-soft: #dcf0ec;
-  --color-evidence: #2f7a4f;
-  --color-line: #dce1e8;
+  /* The page */
+  --color-paper: #fcfafd;
+  --color-tint: #f3eff8;
+  --color-surface: #f6f2fb;
+  --color-note: #edf1ff;
+  --color-ink: #171c27;
+  --color-ink-soft: #667080;
+  --color-line: #dfe4ec;
+  --color-line-soft: #e2e8f0;
+
+  /* Accents */
+  --color-teal: #087a87;
+  --color-violet: #6d3bc0;
+  --color-violet-bright: #7c3aed;
+  --color-link: #4968e8;
+
+  /* Dark panels: code and illustrations */
+  --color-night: #161322;
+  --color-night-raised: #252039;
+  --color-night-line: #3a4d78;
+  --color-night-rule: #2c3a55;
+  --color-night-accent: #243566;
+  --color-night-text: #cbd6ed;
+  --color-night-dim: #a9b8d5;
+  --color-night-violet: #b49be7;
+  --color-night-lilac: #d2bdf4;
+
+  --shadow-panel: 0 6px 12px rgba(109, 59, 192, 0.06);
+}
+
+html {
+  scroll-behavior: smooth;
+  /* An anchor lands below the sticky navigation. */
+  scroll-padding-top: 112px;
 }
 
 body {
@@ -21,6 +45,13 @@ body {
   color: var(--color-ink);
 }
 
-.prose-alma h2 {
-  font-family: var(--font-display);
+:focus-visible {
+  outline: 2px solid var(--color-violet-bright);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
 }

@@ -1,178 +1,238 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import { Header } from "@/components/Header";
+import type { ReactNode } from "react";
+import { CodeBlock } from "@/components/CodeBlock";
+import { ArticleSection, DocLayout, PageIntro, Prose } from "@/components/Doc";
 import { Footer } from "@/components/Footer";
-import { Terminal } from "@/components/Terminal";
+import { Header } from "@/components/Header";
+import { ArrowLink, Card, RefTable, SmartLink, StatusNote } from "@/components/ui";
+import { GITHUB_URL, VERSIONS, editUrl, githubPath, npmUrl } from "@/lib/site";
 
-export const metadata: Metadata = { title: "Developers" };
+const TITLE = "Build with ALMA";
+const LEAD = "The protocol libraries are open source (MIT), run in Node and browsers, make no network calls and need no account.";
+
+export const metadata: Metadata = {
+  title: TITLE,
+  description: LEAD,
+  alternates: { canonical: "/developers" },
+};
+
+const CONTENTS = [
+  { id: "quickstart", label: "Quickstart" },
+  { id: "verify-receipt", label: "Verify a receipt" },
+  { id: "packages", label: "Packages" },
+  { id: "manifest", label: "Manifest" },
+  { id: "api-reference", label: "API reference" },
+  { id: "going-further", label: "Going further" },
+  { id: "contributing", label: "Contributing" },
+];
+
+const PROTOCOL_REPO = "https://github.com/AdaSouls/protocol";
+
+// Every sample on this page was run as written against the packages published on npm.
+const INSTALL = "npm install @adasouls/alma-core";
+
+const IDENTITY = `import { createIdentity, createDelegation, createRelationship, recordEvidence } from "@adasouls/alma-core";
+
+const org = createIdentity({ subjectType: "organization", displayName: "Acme Labs" });
+const agent = createIdentity({ subjectType: "agent", displayName: "Treasury Agent", principal: org.id, controllers: [{ type: "wallet", value: "0x8F12…21C" }] });
+const delegation = createDelegation({ issuer: org.id, subject: agent.id, scope: { capabilities: ["pay"], constraints: { maxTransaction: { USDC: "1000" } } }, expiresAt: "2027-01-01T00:00:00Z" });
+createRelationship({ from: org.id, to: agent.id, type: "delegates", sourceRef: delegation.id });
+recordEvidence({ subject: agent.id, role: "agent", source: { type: "economic-action", reference: "eco_123" }, outcome: "success" });
+console.log(org.id); // alma:main:organization:acme-labs
+console.log(agent.id); // alma:main:agent:treasury-agent`;
+
+const RECEIPT = `import { LocalSigner, buildReceiptStatement, receiptDigest, toBaseUnits, signReceiptMint, signReceiptAttestation, createIssuerKeyset, verifyReceipt } from "@adasouls/alma-core";
+
+const issuer = await LocalSigner.generate(); // a local test key; a production key belongs in a KMS
+const statement = buildReceiptStatement({
+  issuer: "demo-issuer",
+  env: "testnet",
+  action: "eco_123",
+  payer: "alma:main:agent:buyer",
+  payee: "alma:main:agent:vendor",
+  capability: "pay",
+  chain: "eip155:84532",
+  asset: "eip155:84532/erc20:0x036cbd53842c5426634e7929541ec2318f3dcf7e",
+  amount: toBaseUnits("12.5", 6),
+  to: "0x000000000000000000000000000000000000dEaD",
+  txHash: "0x" + "ab".repeat(32),
+});
+const digest = await receiptDigest(statement);
+const mint = await signReceiptMint(issuer, { iss: "demo-issuer", receipt: "rcpt_1", digest, independent: true });
+const delivery = await signReceiptAttestation(issuer, { iss: "demo-issuer", receipt: "rcpt_1", digest, kind: "delivery", decision: "confirmed", decidedBy: "member", decidedAt: new Date() });
+const keyset = await createIssuerKeyset([{ iss: "demo-issuer", publicKey: Buffer.from(issuer.publicKey).toString("base64url") }]);
+const result = await verifyReceipt({ id: "rcpt_1", statement, mint, delivery }, keyset);
+console.log(result.ok); // true; change any field of the statement and it is false`;
+
+const MANIFEST_YAML = `kind: Agent
+version: alma/v1
+metadata:
+  name: treasury-agent
+identity:
+  type: agent
+capabilities:
+  - pay
+authority:
+  maxTransaction:
+    USDC: "1000"
+counterpartyPolicy:
+  minCompletedTransactions: 20
+  minReputationEvidence:
+    disputeRate: 0.02
+  requiredCredentials:
+    - kyb_verified`;
+
+const MANIFEST_COMPILE = `import { readFileSync } from "node:fs";
+import { parseManifestYaml, compileManifest } from "@adasouls/alma-manifest";
+
+const manifest = parseManifestYaml(readFileSync("alma.yaml", "utf8")); // throws AlmaValidationError on a bad manifest
+const compiled = compileManifest(manifest);
+console.log(compiled.delegation.scope); // { capabilities: [ 'pay' ] }
+console.log(compiled.counterpartyPolicy.rules.minCompletedTransactions); // 20`;
+
+const CLI_FROM_CLONE = `git clone https://github.com/AdaSouls/alma.git
+cd alma
+npm install
+npm run build -w @adasouls/alma-core -w @adasouls/alma-manifest -w @adasouls/alma-cli
+node packages/cli/dist/bin.js --help`;
+
+const link = "text-violet hover:underline";
+
+function Sources({ npm, github, note }: { npm?: string; github: string; note: string }) {
+  return (
+    <>
+      {npm && (
+        <>
+          <SmartLink href={npmUrl(npm)} className={link}>
+            npm ↗
+          </SmartLink>
+          {" · "}
+        </>
+      )}
+      <SmartLink href={github} className={link}>
+        GitHub ↗
+      </SmartLink>
+      {` · ${note}`}
+    </>
+  );
+}
+
+const PACKAGES: ReactNode[][] = [
+  [
+    "@adasouls/alma-core",
+    "Protocol identifiers, identities, delegation, credentials, relationships, evidence, receipts, signatures, reports, deliveries and log.",
+    <Sources key="s" npm="@adasouls/alma-core" github={githubPath("packages/alma-core")} note={`v${VERSIONS.core}`} />,
+  ],
+  [
+    "@adasouls/alma-credentials",
+    "The interface a credential verifier implements. The verifier it ships is a stub with no cryptography: its “verified” is not a verification claim.",
+    <Sources key="s" npm="@adasouls/alma-credentials" github={githubPath("packages/alma-credentials")} note={`v${VERSIONS.credentials}`} />,
+  ],
+  [
+    "@adasouls/alma-manifest",
+    "YAML schema, parser and compiler.",
+    <Sources key="s" npm="@adasouls/alma-manifest" github={githubPath("packages/alma-manifest")} note={`v${VERSIONS.manifest}`} />,
+  ],
+  [
+    "@adasouls/alma-cli",
+    "A local command line, in the repository only. It is not on npm, so there is no npx quickstart yet.",
+    <Sources key="s" github={githubPath("packages/cli")} note="not on npm" />,
+  ],
+  [
+    "@adasouls/protocol",
+    "Solidity AlmaAnchorRegistry: optional on-chain anchors for ALMA identifiers. No deployment addresses are published yet.",
+    <Sources key="s" npm="@adasouls/protocol" github={PROTOCOL_REPO} note="v0.1.0, separate repository" />,
+  ],
+];
+
+const Code = ({ children }: { children: ReactNode }) => <code className="break-words font-mono text-[0.92em]">{children}</code>;
 
 export default function DevelopersPage() {
   return (
     <>
       <Header />
-      <main className="max-w-3xl mx-auto px-6 py-16">
-        <p className="font-mono text-xs uppercase tracking-widest text-accent-text mb-4">Developers</p>
-        <h1 className="font-display font-semibold text-4xl sm:text-5xl leading-tight text-balance">
-          Give a working agent an identity, limits and a signed history
-        </h1>
-        <p className="mt-5 text-lg text-ink-soft max-w-[58ch]">
-          <code className="font-mono bg-paper-raised border border-line rounded px-1.5 py-0.5">@adasouls/alma-cli</code>{" "}
-          is local to your project: no server, no account, nothing sent anywhere. State lives in{" "}
-          <code className="font-mono">./.alma/</code> and the limits in <code className="font-mono">./alma.yaml</code>, next to
-          your code. The limits it writes are <strong>declared, not enforced</strong>: it says so, and says how to find out
-          what would enforce them.
-        </p>
+      <main>
+        <PageIntro eyebrow="DEVELOPERS / START LOCALLY" title={TITLE} lead={LEAD} />
+        <DocLayout contents={CONTENTS} edit={editUrl("src/app/developers/page.tsx")} updated="8 October 2026">
+          <ArticleSection id="quickstart" eyebrow="QUICKSTART / #QUICKSTART" title="An identity in a few lines">
+            <CodeBlock label="INSTALL / NPM" code={INSTALL} />
+            <Prose>Create an accountable principal, give an agent a persistent identity, delegate narrowly and record evidence.</Prose>
+            <CodeBlock label="IDENTITY + AUTHORITY / TYPESCRIPT" code={IDENTITY} />
+            <StatusNote label="Identifier segment">
+              <Code>createIdentity</Code> writes the <Code>organization</Code> segment. Some examples in the repository write <Code>org</Code>: the parser accepts it as a short form of the same subject type, and keeps the
+              identifier exactly as it was written.
+            </StatusNote>
+          </ArticleSection>
 
-        <div className="mt-10 space-y-2">
-          <p className="font-mono text-xs uppercase tracking-widest text-ink-soft">1. Connect</p>
-          <Terminal
-            prompt="npx @adasouls/alma-cli connect --org alma:main:org:acme-labs --wallet 0x8F12...21Cd --capabilities pay --max-tx USDC=100 --daily USDC=500 --approve-above USDC=50 -y"
-            lines={[
-              { text: "" },
-              { text: "Connecting your agent to ALMA...", kind: "bold" },
-              { text: "" },
-              { text: "✓ Agent runtime detected: Claude / Anthropic SDK", kind: "ok" },
-              { text: "✓ ALMA identity created", kind: "ok" },
-              { text: "✓ Bound 1 controller(s)", kind: "ok" },
-              { text: "✓ Linked to principal alma:main:org:acme-labs", kind: "ok" },
-              { text: "✓ Limits declared in ./alma.yaml", kind: "ok" },
-              { text: "    Capabilities: pay", kind: "dim" },
-              { text: "    Per transaction: 100 USDC", kind: "dim" },
-              { text: "    Per day: 500 USDC", kind: "dim" },
-              { text: "    A person approves above: 50 USDC", kind: "dim" },
-              { text: "    Assets: USDC", kind: "dim" },
-              { text: "✓ alma:main:org:acme-labs delegates [pay] with those limits, until 2027-01-05", kind: "ok" },
-              { text: "✓ Signing key created in ./.alma/issuer.key (key id ed25519-c35485e9338292ab6931da71059f1fea)", kind: "ok" },
-              { text: "✓ Added .alma/issuer.key to .gitignore", kind: "ok" },
-              { text: "✓ Empty signed history started in ./.alma/log.json", kind: "ok" },
-              { text: "○ Route through AdaSouls (needs a running adasouls-api): payments are checked before anything is signed", kind: "pending" },
-              { text: "    To do it over MCP, add this server to your client's configuration:", kind: "dim" },
-              { text: "    {", kind: "dim" },
-              { text: "      \"mcpServers\": {", kind: "dim" },
-              { text: "        \"adasouls\": {", kind: "dim" },
-              { text: "          \"command\": \"npx\",", kind: "dim" },
-              { text: "          \"args\": [", kind: "dim" },
-              { text: "            \"-y\",", kind: "dim" },
-              { text: "            \"@adasouls/mcp\"", kind: "dim" },
-              { text: "          ],", kind: "dim" },
-              { text: "          \"env\": {", kind: "dim" },
-              { text: "            \"ADASOULS_API_KEY\": \"<your agent's api key>\",", kind: "dim" },
-              { text: "            \"ADASOULS_API_URL\": \"http://localhost:3000/v1\"", kind: "dim" },
-              { text: "          }", kind: "dim" },
-              { text: "        }", kind: "dim" },
-              { text: "      }", kind: "dim" },
-              { text: "    }", kind: "dim" },
-              { text: "" },
-              { text: "ALMA ID:", kind: "dim" },
-              { text: "alma:main:agent:demo-treasury-agent", kind: "bold" },
-              { text: "" },
-              { text: "Limits: declared (advisory). Run npx @adasouls/alma-verifier doctor to see what would enforce them.", kind: "plain" },
-            ]}
-          />
-        </div>
+          <ArticleSection id="verify-receipt" title="Sign and verify a receipt">
+            <Prose>Generate a local test key, bind the issuer’s signature to the exact statement digest, then verify it against an explicitly trusted keyset.</Prose>
+            <CodeBlock label="LOCAL TEST / TYPESCRIPT" code={RECEIPT} />
+            <StatusNote label="Runtime + key handling">
+              <Code>Buffer</Code> is Node-only: in a browser, encode the public key as unpadded base64url yourself, since alma-core does not export a helper for it yet. Use a production KMS, not this local test key. No
+              production issuer keys or log names are published yet. <Code>independent: true</Code> is illustrative here: it is a flag the issuer signs, and <Code>verifyReceipt</Code> reports it without checking it.
+            </StatusNote>
+          </ArticleSection>
 
-        <div className="mt-10 space-y-2">
-          <p className="font-mono text-xs uppercase tracking-widest text-ink-soft">2. Record a payment, signed</p>
-          <Terminal
-            prompt="alma evidence add --outcome success --counterparty alma:main:agent:research-02 --amount 5000000 --tx-hash 0x5c1f...6677 --chain eip155:84532 --asset eip155:84532/erc20:0x036c...cf7e --to 0x1111...1111"
-            lines={[
-              { text: "✓ Signed receipt rcp_act_c4f9b78d-202d-4c68-9b2a-68f187755c32: paid alma:main:agent:research-02 (position 0 in this project's log)", kind: "ok" },
-              { text: "Self-attested: signed with this project's own key. It doesn't count as confirmed by the counterparty.", kind: "dim" },
-              { text: "Saved to ./.alma/receipts.jsonl", kind: "dim" },
-            ]}
-          />
-        </div>
+          <ArticleSection id="packages" title="Small packages, explicit responsibilities">
+            <RefTable columns={["Package", "What it provides", "Source / status"]} rows={PACKAGES} />
+            <Prose>The command line runs from a clone of the repository:</Prose>
+            <CodeBlock label="CLI / FROM A CLONE" code={CLI_FROM_CLONE} />
+          </ArticleSection>
 
-        <div className="mt-10 space-y-2">
-          <p className="font-mono text-xs uppercase tracking-widest text-ink-soft">3. Change a limit</p>
-          <Terminal
-            prompt="alma limits --daily USDC=300"
-            lines={[
-              { text: "✓ Limits updated in ./alma.yaml", kind: "ok" },
-              { text: "    Capabilities: pay", kind: "dim" },
-              { text: "    Per transaction: 100 USDC", kind: "dim" },
-              { text: "    Per day: 300 USDC", kind: "dim" },
-              { text: "    A person approves above: 50 USDC", kind: "dim" },
-              { text: "    Assets: USDC", kind: "dim" },
-              { text: "✓ Revoked 1 earlier delegation(s)", kind: "ok" },
-              { text: "✓ alma:main:org:acme-labs delegates [pay] with the new limits, until 2027-01-05", kind: "ok" },
-            ]}
-          />
-        </div>
+          <ArticleSection id="manifest" title="Put policy beside your agent">
+            <Prose>The manifest package parses and compiles YAML. Keep identity, capabilities and counterparty requirements readable and versioned.</Prose>
+            <CodeBlock label="ALMA.YAML / AGENT MANIFEST" code={MANIFEST_YAML} />
+            <CodeBlock label="PARSE + COMPILE / TYPESCRIPT" code={MANIFEST_COMPILE} />
+            <p className="text-[13px] leading-[1.65] text-ink-soft">
+              The thresholds are one application’s choice, not protocol defaults. Compiling produces plain objects and makes no network calls: applying them is the caller’s job. The schema is in{" "}
+              <SmartLink href={githubPath("packages/alma-manifest/src")} className={link}>
+                packages/alma-manifest ↗
+              </SmartLink>
+              .
+            </p>
+          </ArticleSection>
 
-        <div className="mt-10 space-y-2">
-          <p className="font-mono text-xs uppercase tracking-widest text-ink-soft">4. Ask your agent who it is</p>
-          <Terminal
-            prompt="alma whoami"
-            lines={[
-              { text: "" },
-              { text: "I am alma:main:agent:demo-treasury-agent.", kind: "bold" },
-              { text: "I represent alma:main:org:acme-labs.", kind: "plain" },
-              { text: "" },
-              { text: "I am authorized to:", kind: "bold" },
-              { text: "  • pay", kind: "plain" },
-              { text: "" },
-              { text: "My identity is linked to:", kind: "plain" },
-              { text: "  • wallet: 0x8F1234567890abcdef1234567890ABCDEF1221Cd", kind: "plain" },
-              { text: "" },
-              { text: "My declared limits:", kind: "plain" },
-              { text: "  • Capabilities: pay", kind: "plain" },
-              { text: "  • Per transaction: 100 USDC", kind: "plain" },
-              { text: "  • Per day: 300 USDC", kind: "plain" },
-              { text: "  • A person approves above: 50 USDC", kind: "plain" },
-              { text: "  • Assets: USDC", kind: "plain" },
-              { text: "  • Enforcement: advisory (until `npx @adasouls/alma-verifier doctor` says otherwise)", kind: "plain" },
-              { text: "" },
-              { text: "My signed history (self-attested):", kind: "plain" },
-              { text: "  • 1 signed receipt", kind: "plain" },
-              { text: "  • Log head: 1 entry, root 79411ea4750c7eaa…, key ed25519-c35485e9338292ab6931da71059f1fea", kind: "plain" },
-              { text: "" },
-              { text: "No unsigned notes recorded.", kind: "dim" },
-            ]}
-          />
-        </div>
+          <ArticleSection id="api-reference" title="Reference, without false readiness">
+            <StatusNote label="API reference · not generated yet">
+              There is no generated API reference yet. Until there is, read the exported types in{" "}
+              <SmartLink href={`${GITHUB_URL}/blob/develop/packages/alma-core/src/index.ts`} className={link}>
+                alma-core’s source ↗
+              </SmartLink>
+              , each package’s README, and the{" "}
+              <SmartLink href={githubPath("spec/alma-v1")} className={link}>
+                draft spec ↗
+              </SmartLink>
+              . The CLI is not available on npm, so no CLI quickstart is presented here.
+            </StatusNote>
+          </ArticleSection>
 
-        <div className="mt-10 space-y-2">
-          <p className="font-mono text-xs uppercase tracking-widest text-ink-soft">5. Share the head of its history</p>
-          <Terminal
-            prompt="alma log head"
-            lines={[
-              { text: "Log   local-main-agent-demo-treasury-agent", kind: "plain" },
-              { text: "Size  1 entry", kind: "plain" },
-              { text: "Root  79411ea4750c7eaa28e6cc6ad5f5e7449c2552167763c4000344a667cd5267c9", kind: "plain" },
-              { text: "Key   ed25519-c35485e9338292ab6931da71059f1fea", kind: "plain" },
-              { text: "Signed by this project's own key: self-attested. Pass --json for the signed head itself.", kind: "dim" },
-            ]}
-          />
-          <p className="text-sm text-ink-soft mt-3 max-w-[60ch]">
-            Every line above came from an actual run of the CLI against a scratch project — nothing on this page is a mockup.
-          </p>
-        </div>
+          <ArticleSection id="going-further" title="Going further">
+            <div className="grid gap-5 md:grid-cols-2">
+              <Card eyebrow="NO ACCOUNT" eyebrowTone="teal" title="Local protocol">
+                Use alma-core to model identity, check delegations and verify evidence. Rank agents with your own rules.
+              </Card>
+              <Card eyebrow="OPTIONAL / ADASOULS" eyebrowTone="teal" title="Hosted enforcement">
+                Payments, policies, issued receipts and marketplace access through the SDK and the MCP server. @adasouls/sdk v0.5 and @adasouls/mcp v0.4 are on npm. The hosted API is not open yet.
+              </Card>
+            </div>
+            <p>
+              <ArrowLink href="https://www.adasouls.io/developers">AdaSouls Developers ↗</ArrowLink>
+            </p>
+          </ArticleSection>
 
-        <div className="mt-14 border-t border-line pt-8">
-          <h2 className="font-display font-semibold text-2xl mb-3">What this does and doesn&apos;t do</h2>
-          <p className="text-ink-soft max-w-[62ch] mb-4">
-            It gives the agent an identity, writes its limits where you can review them, and starts a history signed with
-            the project&apos;s own key. That history is <strong>self-attested</strong>: it shows a record wasn&apos;t edited
-            afterwards, not that a counterparty agrees with it. And the limits bind only an agent whose code consults them.
-            What makes them hold is where the agent&apos;s keys live: a service that checks before anything is signed, or
-            the chain itself. This CLI never prints a check for something it didn&apos;t do.
-          </p>
-          <div className="flex flex-wrap gap-3">
-            <Link
-              href="https://github.com/AdaSouls/alma/tree/develop/packages/cli"
-              className="px-4 py-2 rounded border border-line text-sm font-medium hover:border-accent hover:text-accent-text transition-colors"
-            >
-              packages/cli on GitHub
-            </Link>
-            <Link
-              href="/protocol"
-              className="px-4 py-2 rounded border border-line text-sm font-medium hover:border-accent hover:text-accent-text transition-colors"
-            >
-              Read the protocol
-            </Link>
-          </div>
-        </div>
+          <ArticleSection id="contributing" title="Contribute to the protocol">
+            <Prose>
+              Open{" "}
+              <SmartLink href={`${GITHUB_URL}/issues`} className={link}>
+                issues ↗
+              </SmartLink>
+              , propose spec changes and include changesets for versioned releases. The code is MIT licensed. Discuss interoperability and evidence semantics in the open.
+            </Prose>
+            <StatusNote label="Security reporting · pending">
+              The repository has no SECURITY.md and no private reporting route yet. Do not publish sensitive security details in a public issue.
+            </StatusNote>
+          </ArticleSection>
+        </DocLayout>
       </main>
       <Footer />
     </>

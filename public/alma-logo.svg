@@ -1,0 +1,15 @@
+<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="40" height="50" viewBox="0 0 40 50" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="ALMA flame/apple logo" clip-path="url(#clip0_0_4)">
+<path id="Llama con manzana en negativo" fill-rule="evenodd" clip-rule="evenodd" d="M20.204 0C23.3124 10.0759 33.259 11.9651 32.0156 23.3006C35.124 20.1518 36.3673 17.6329 35.7456 15.1139C42.5839 27.079 39.4756 40.3037 30.1507 45.9714C23.3124 51.0093 12.1224 50.3796 5.28413 44.0821C-2.17582 37.1549 -0.932494 28.3385 4.04081 20.1518C4.04081 25.8195 6.52746 27.7088 8.39245 28.3385C5.9058 17.0031 14.6091 10.7057 20.204 0ZM19.5824 30.2277C16.4741 27.079 10.2574 27.7088 9.63578 33.3765C9.01411 37.7847 12.1224 42.8226 14.6091 44.0821C16.4741 45.3416 17.7174 43.4524 19.5824 43.4524C21.4474 43.4524 23.3124 45.3416 25.1773 44.0821C28.2857 41.5632 30.1507 35.8954 28.2857 31.4872C26.4207 27.7088 22.6907 27.7088 19.5824 30.2277ZM19.5824 27.7088C18.3391 23.3006 22.069 20.7816 25.799 21.4113C25.799 25.1898 23.3124 27.7088 19.5824 27.7088Z" fill="url(#paint0_linear_0_4)"/>
+</g>
+<defs>
+<linearGradient id="paint0_linear_0_4" x1="1.1832" y1="10.3593" x2="37.4449" y2="32.1031" gradientUnits="userSpaceOnUse">
+<stop stop-color="#00F5FF"/>
+<stop offset="0.55" stop-color="#7C3AED"/>
+<stop offset="1" stop-color="#F531C5"/>
+</linearGradient>
+<clipPath id="clip0_0_4">
+<rect width="40" height="50" fill="white"/>
+</clipPath>
+</defs>
+</svg>

@@ -1,19 +1,31 @@
 import type { Metadata } from "next";
-import { fraunces, publicSans, plexMono } from "@/lib/fonts";
+import { inter, plexMono } from "@/lib/fonts";
+import { SITE_URL } from "@/lib/site";
 import "./globals.css";
 
+const DESCRIPTION =
+  "ALMA gives every AI agent a portable identity, a verifiable record of who it represents and what it may do, and a reputation built from signed, tamper-evident evidence.";
+
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
   title: {
-    default: "ALMA — A portable economic actor protocol",
+    default: "ALMA · Verifiable reputation for AI agents",
     template: "%s · ALMA",
   },
-  description:
-    "ALMA gives humans, organizations, and autonomous agents a portable economic identity — identity, representation, authority, relationships, evidence, and intent, connected across otherwise independent protocols.",
+  description: DESCRIPTION,
+  alternates: { canonical: "/" },
+  openGraph: {
+    type: "website",
+    siteName: "ALMA",
+    url: SITE_URL,
+    title: "ALMA · Verifiable reputation for AI agents",
+    description: DESCRIPTION,
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${fraunces.variable} ${publicSans.variable} ${plexMono.variable}`}>
+    <html lang="en" className={`${inter.variable} ${plexMono.variable}`}>
       <body className="font-sans antialiased">{children}</body>
     </html>
   );

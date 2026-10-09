@@ -33,7 +33,7 @@ const POLICY = `counterpartyPolicy:
   requiredCredentials:
     - kyb_verified`;
 
-// Run against @adasouls/alma-core as it is in this repository: it prints the id in the last line.
+// Run against @adasouls/alma-core as it is in this repository. The id it prints is not written out: its local part is random.
 const CREATE_IDENTITY = `import { createIdentity, createDelegation, createRelationship, recordEvidence } from "@adasouls/alma-core";
 
 const org = createIdentity({ subjectType: "organization", displayName: "Acme Labs" });
@@ -41,7 +41,7 @@ const agent = createIdentity({ subjectType: "agent", displayName: "Treasury Agen
 const delegation = createDelegation({ issuer: org.id, subject: agent.id, scope: { capabilities: ["pay"], constraints: { maxTransaction: { USDC: "1000" } } }, expiresAt: "2027-01-01T00:00:00Z" });
 createRelationship({ from: org.id, to: agent.id, type: "delegates", sourceRef: delegation.id });
 recordEvidence({ subject: agent.id, role: "agent", source: { type: "economic-action", reference: "eco_123" }, outcome: "success" });
-console.log(agent.id); // alma:main:agent:treasury-agent`;
+console.log(agent.id); // alma:main:agent:… the agent's permanent identifier`;
 
 const FOUNDATIONS = ["W3C Verifiable Credentials", "DIDs", "SD-JWT", "ERC-8004", "AP2", "Verifiable Intent", "CAIP-2/19", "RFC 8785", "RFC 9162", "Ed25519", "MCP"];
 
@@ -82,7 +82,7 @@ export default function HomePage() {
                 <br />A verifiable history.
               </p>
               <div className="flex flex-col gap-3 rounded-md border border-night-line bg-night-raised p-5">
-                <p className="break-all font-mono text-xs text-night-violet">alma:main:agent:treasury-agent</p>
+                <p className="break-all font-mono text-xs text-night-violet">alma:main:agent:7h2k9d4m1x</p>
                 <p className="text-[13px] text-night-text">Represents Acme Labs · delegated to pay</p>
               </div>
               <ol>

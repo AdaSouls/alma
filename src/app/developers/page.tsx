@@ -38,8 +38,8 @@ const agent = createIdentity({ subjectType: "agent", displayName: "Treasury Agen
 const delegation = createDelegation({ issuer: org.id, subject: agent.id, scope: { capabilities: ["pay"], constraints: { maxTransaction: { USDC: "1000" } } }, expiresAt: "2027-01-01T00:00:00Z" });
 createRelationship({ from: org.id, to: agent.id, type: "delegates", sourceRef: delegation.id });
 recordEvidence({ subject: agent.id, role: "agent", source: { type: "economic-action", reference: "eco_123" }, outcome: "success" });
-console.log(org.id); // alma:main:organization:acme-labs
-console.log(agent.id); // alma:main:agent:treasury-agent`;
+console.log(org.id); // alma:main:organization:…
+console.log(agent.id); // alma:main:agent:… its permanent identifier`;
 
 const RECEIPT = `import { LocalSigner, buildReceiptStatement, receiptDigest, toBaseUnits, signReceiptMint, signReceiptAttestation, createIssuerKeyset, verifyReceipt } from "@adasouls/alma-core";
 
@@ -160,7 +160,7 @@ export default function DevelopersPage() {
             <CodeBlock label="IDENTITY + AUTHORITY / TYPESCRIPT" code={IDENTITY} />
             <StatusNote label="Identifier segment">
               <Code>createIdentity</Code> writes the <Code>organization</Code> segment. Some examples in the repository write <Code>org</Code>: the parser accepts it as a short form of the same subject type, and keeps the
-              identifier exactly as it was written.
+              identifier exactly as it was written. Keep names out of the local part: an identifier is permanent and public, so pass a random <Code>localId</Code> and put what the Subject is called in its display name.
             </StatusNote>
           </ArticleSection>
 

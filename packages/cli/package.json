@@ -11,14 +11,22 @@
   "files": [
     "dist"
   ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/AdaSouls/alma.git",
+    "directory": "packages/cli"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "test": "vitest run",
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@adasouls/alma-core": "*",
-    "@adasouls/alma-manifest": "*",
+    "@adasouls/alma-core": "^0.7.0",
+    "@adasouls/alma-manifest": "^0.2.1",
     "commander": "^12.1.0"
   },
   "devDependencies": {

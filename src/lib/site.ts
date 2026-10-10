@@ -1,3 +1,4 @@
+import cli from "../../packages/cli/package.json";
 import core from "../../packages/alma-core/package.json";
 import credentials from "../../packages/alma-credentials/package.json";
 import manifest from "../../packages/alma-manifest/package.json";
@@ -14,6 +15,7 @@ export const VERSIONS = {
   core: core.version,
   credentials: credentials.version,
   manifest: manifest.version,
+  cli: cli.version,
 };
 
 /** When @adasouls/alma-core's current version was published to npm. Update with each release. */

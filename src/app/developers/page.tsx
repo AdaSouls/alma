@@ -90,11 +90,9 @@ const compiled = compileManifest(manifest);
 console.log(compiled.delegation.scope); // { capabilities: [ 'pay' ] }
 console.log(compiled.counterpartyPolicy.rules.minCompletedTransactions); // 20`;
 
-const CLI_FROM_CLONE = `git clone https://github.com/AdaSouls/alma.git
-cd alma
-npm install
-npm run build -w @adasouls/alma-core -w @adasouls/alma-manifest -w @adasouls/alma-cli
-node packages/cli/dist/bin.js --help`;
+// Run as published on npm, in an empty folder: it writes alma.yaml and .alma/, and prints the agent's ALMA id.
+const CLI_CONNECT = `npx @adasouls/alma-cli connect --org alma:main:org:acme-labs \\
+  --capabilities pay --max-tx USDC=100 --daily USDC=500 --approve-above USDC=50 -y`;
 
 const link = "text-violet hover:underline";
 
@@ -135,8 +133,8 @@ const PACKAGES: ReactNode[][] = [
   ],
   [
     "@adasouls/alma-cli",
-    "A local command line, in the repository only. It is not on npm, so there is no npx quickstart yet.",
-    <Sources key="s" github={githubPath("packages/cli")} note="not on npm" />,
+    "The command line: gives a working agent an identity, declared limits and a signed history, in its own folder. Nothing leaves the machine.",
+    <Sources key="s" npm="@adasouls/alma-cli" github={githubPath("packages/cli")} note={`v${VERSIONS.cli}`} />,
   ],
   [
     "@adasouls/protocol",
@@ -175,8 +173,8 @@ export default function DevelopersPage() {
 
           <ArticleSection id="packages" title="Small packages, explicit responsibilities">
             <RefTable columns={["Package", "What it provides", "Source / status"]} rows={PACKAGES} />
-            <Prose>The command line runs from a clone of the repository:</Prose>
-            <CodeBlock label="CLI / FROM A CLONE" code={CLI_FROM_CLONE} />
+            <Prose>The command line does the first steps for an agent you already run, from its folder:</Prose>
+            <CodeBlock label="CLI / NPX" code={CLI_CONNECT} />
           </ArticleSection>
 
           <ArticleSection id="manifest" title="Put policy beside your agent">
@@ -202,7 +200,7 @@ export default function DevelopersPage() {
               <SmartLink href={githubPath("spec/alma-v1")} className={link}>
                 draft spec ↗
               </SmartLink>
-              . The CLI is not available on npm, so no CLI quickstart is presented here.
+              .
             </StatusNote>
           </ArticleSection>
 

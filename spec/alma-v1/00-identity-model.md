@@ -38,11 +38,19 @@ examples:
   short form `org` (as in the example and in AlmaAnchorRegistry on-chain). Both forms denote the same Subject type;
   because identifiers are immutable, an identifier keeps the form it was issued with, and implementations must
   accept both.
-- **`<local-id>`** is implementation-defined (AdaSouls uses a ULID or a
-  human-chosen slug for organizations); ALMA does not mandate a specific
-  ID generation scheme, only that it is unique within `<network>` and,
-  once issued, **immutable** — an identifier is never reassigned to a
-  different Subject, even after that Subject is retired.
+- **`<local-id>`** is implementation-defined; ALMA does not mandate a
+  specific ID generation scheme, only that it is unique within
+  `<network>` and, once issued, **immutable** — an identifier is never
+  reassigned to a different Subject, even after that Subject is retired.
+  Because an identifier is permanent and public, a local-id SHOULD be
+  random and SHOULD NOT be derived from a name, an email address or any
+  other fact about its Subject: a name can change or be claimed by
+  someone else, and for a human it is personal data. For a human Subject
+  it MUST NOT contain personal data. What a Subject is called belongs in
+  its display name, which can change without the identifier changing.
+  (AdaSouls and `@adasouls/alma-core` issue random local-ids for all
+  three Subject types. Identifiers issued earlier with a readable
+  local-id stay valid.)
 
 ## Why not just use a DID directly in v1
 

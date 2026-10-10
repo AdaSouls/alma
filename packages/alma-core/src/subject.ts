@@ -5,7 +5,6 @@ import {
   type SubjectType,
   formatIdentifier,
   randomLocalId,
-  slugifyLocalId,
 } from "./identifier.js";
 
 /**
@@ -49,7 +48,15 @@ export interface CreateIdentityInput {
   network?: string;
   subjectType: SubjectType;
   displayName: string;
-  /** Explicit local-id; if omitted, one is derived from displayName (with a random fallback on empty slug). */
+  /**
+   * Explicit local-id. If omitted, a random one is made.
+   *
+   * An identifier is permanent and public, so it should say nothing
+   * about its Subject: not a name, not an email address. A name can
+   * change, can be claimed by someone else and, for a person, is personal
+   * data; the display name is where it belongs. Pass a local-id only
+   * when you have one of your own that is just as opaque.
+   */
   localId?: string;
   principal?: string;
   controllers?: Controller[];
@@ -57,10 +64,7 @@ export interface CreateIdentityInput {
 
 export function createIdentity(input: CreateIdentityInput): AlmaIdentity {
   const network = input.network ?? "main";
-  const localId =
-    input.localId ??
-    safeSlug(input.displayName) ??
-    randomLocalId();
+  const localId = input.localId ?? randomLocalId();
 
   const id = formatIdentifier({ network, subjectType: input.subjectType, localId });
 
@@ -76,12 +80,4 @@ export function createIdentity(input: CreateIdentityInput): AlmaIdentity {
     }),
     "identity"
   );
-}
-
-function safeSlug(displayName: string): string | undefined {
-  try {
-    return slugifyLocalId(displayName);
-  } catch {
-    return undefined;
-  }
 }

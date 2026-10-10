@@ -44,7 +44,7 @@ Connecting your agent to ALMA...
     }
 
 ALMA ID:
-alma:main:agent:demo-treasury-agent
+alma:main:agent:k3f9m2x7qa
 
 Limits: declared (advisory). Run npx @adasouls/alma-verifier doctor to see what would enforce them.
 ```
@@ -56,7 +56,7 @@ npx @adasouls/alma-cli whoami
 ```
 
 ```text
-I am alma:main:agent:demo-treasury-agent.
+I am alma:main:agent:k3f9m2x7qa.
 I represent alma:main:org:acme-labs.
 
 I am authorized to:

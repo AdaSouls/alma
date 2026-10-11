@@ -1,5 +1,11 @@
 # @adasouls/alma-core
 
+## 0.8.0
+
+### Minor Changes
+
+- [#20](https://github.com/AdaSouls/alma/pull/20) [`ed83758`](https://github.com/AdaSouls/alma/commit/ed837589e314791aef1ab0c64d292ffb5e8a67a5) Thanks [@MatiFalcone](https://github.com/MatiFalcone)! - `createIdentity` issues a random local-id when none is given, for humans, organizations and agents alike. It used to derive one from the display name ("Acme Labs" became `alma:main:organization:acme-labs`), which made identifiers collide for Subjects with the same name, let anyone claim a name by registering it first, and put a person's name in a permanent public identifier. Pass `localId` to choose one yourself. Identifiers issued before stay valid: the format is unchanged, and the spec now says a local-id should be random and must not carry personal data for a human.
+
 ## 0.7.0
 
 ### Minor Changes

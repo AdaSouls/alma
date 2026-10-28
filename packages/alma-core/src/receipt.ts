@@ -8,8 +8,17 @@ import { unwrap } from "./errors.js";
  * Each side attests what only it can know (ADR-018):
  * - the payee: "payment received" -- evidence for the payer;
  * - the payer: "delivered as agreed" -- evidence for the payee.
- * That the transfer itself happened is checkable on-chain from
- * (chain, asset, to, amount, txHash); nobody needs to vouch for it.
+ *
+ * How the transfer itself is known depends on the rail (`settlement`):
+ * - onchain: checkable by anyone on the chain from (chain, asset, to,
+ *   amount, txHash); nobody needs to vouch for it. Every
+ *   `alma-receipt/1` receipt is this kind.
+ * - counterparty (`alma-receipt/2` only): a private rail, such as a card
+ *   payment through Stripe, that only its parties can see. `reference`
+ *   names the payment on that rail (a Stripe PaymentIntent, `pi_...`),
+ *   and the issuer has not seen it settle: the payment is established
+ *   only by the payee's "payment received" attestation. Consumers must
+ *   count it apart from on-chain receipts, never as one.
  *
  * Encoding is unambiguous by construction, so any implementation
  * (TypeScript, Rust, a circuit) reproduces the same bytes:
@@ -19,7 +28,10 @@ import { unwrap } from "./errors.js";
  *   normalization never come into play;
  * - amounts are non-negative integers in the asset's base units
  *   ("500 USDC" is "500000000"), never decimals;
- * - chain and asset are CAIP-2 / CAIP-19 identifiers;
+ * - chain and asset are CAIP-2 / CAIP-19 identifiers. A private rail
+ *   uses the same shape: Stripe is "stripe:test" / "stripe:live", its
+ *   assets "stripe:live/iso4217:USD", amounts in the currency's minor
+ *   units (cents);
  * - `issuer` and `env` keep test/mock receipts from ever being mistaken
  *   for production ones.
  *
@@ -27,7 +39,13 @@ import { unwrap } from "./errors.js";
  * enrolled holder key (see ADR-018).
  */
 
+/** The on-chain receipt. Unchanged: every receipt issued with it keeps its bytes and its meaning. */
 export const RECEIPT_VERSION = "alma-receipt/1";
+/** Adds `settlement`, so a receipt can also describe a payment on a private rail. */
+export const RECEIPT_VERSION_2 = "alma-receipt/2";
+
+export const RECEIPT_SETTLEMENTS = ["onchain", "counterparty"] as const;
+export type ReceiptSettlement = (typeof RECEIPT_SETTLEMENTS)[number];
 
 export const RECEIPT_ENVS = ["mainnet", "testnet", "mock"] as const;
 export type ReceiptEnv = (typeof RECEIPT_ENVS)[number];
@@ -35,8 +53,7 @@ export type ReceiptEnv = (typeof RECEIPT_ENVS)[number];
 const ascii = z.string().regex(/^[\x20-\x7e]*$/, "must be printable ASCII");
 const nonEmptyAscii = ascii.min(1);
 
-export const receiptStatementSchema = z.object({
-  v: z.literal(RECEIPT_VERSION),
+const statementFields = {
   issuer: nonEmptyAscii,
   env: z.enum(RECEIPT_ENVS),
   action: nonEmptyAscii,
@@ -50,16 +67,46 @@ export const receiptStatementSchema = z.object({
   /** Integer, base units of `asset`. */
   amount: ascii.regex(/^(0|[1-9][0-9]*)$/, "must be an integer amount in base units"),
   to: nonEmptyAscii,
-  txHash: nonEmptyAscii,
   settledAt: ascii.regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/, "must be an ISO-8601 UTC timestamp with second precision"),
-});
-export type ReceiptStatement = z.infer<typeof receiptStatementSchema>;
+};
 
-export type BuildReceiptInput = Omit<ReceiptStatement, "v" | "settledAt"> & { settledAt?: Date };
+export const receiptStatementV1Schema = z.object({ v: z.literal(RECEIPT_VERSION), ...statementFields, txHash: nonEmptyAscii });
+export const receiptStatementV2Schema = z.discriminatedUnion("settlement", [
+  z.object({ v: z.literal(RECEIPT_VERSION_2), settlement: z.literal("onchain"), ...statementFields, txHash: nonEmptyAscii }),
+  z.object({ v: z.literal(RECEIPT_VERSION_2), settlement: z.literal("counterparty"), ...statementFields, reference: nonEmptyAscii }),
+]);
+export const receiptStatementSchema = z.union([receiptStatementV1Schema, receiptStatementV2Schema]);
+export type ReceiptStatement = z.infer<typeof receiptStatementSchema>;
+export type ReceiptStatementV1 = z.infer<typeof receiptStatementV1Schema>;
+
+type Fields = Omit<ReceiptStatementV1, "v" | "settledAt" | "txHash"> & { settledAt?: Date };
+/**
+ * Without `settlement`: an on-chain `alma-receipt/1`, byte for byte what
+ * this function always built. With `settlement: "counterparty"`: an
+ * `alma-receipt/2` naming the payment by `reference`.
+ */
+export type BuildReceiptInput =
+  | (Fields & { settlement?: undefined; txHash: string })
+  | (Fields & { settlement: "onchain"; txHash: string })
+  | (Fields & { settlement: "counterparty"; reference: string });
 
 export function buildReceiptStatement(input: BuildReceiptInput): ReceiptStatement {
   const settledAt = (input.settledAt ?? new Date()).toISOString().replace(/\.\d{3}Z$/, "Z");
-  return unwrap(receiptStatementSchema.safeParse({ ...input, v: RECEIPT_VERSION, settledAt }), "receiptStatement");
+  const { settlement, ...rest } = input;
+  // Each version's own schema, so a failure names the field rather than "matches neither version".
+  return settlement === undefined
+    ? unwrap(receiptStatementV1Schema.safeParse({ ...rest, v: RECEIPT_VERSION, settledAt }), "receiptStatement")
+    : unwrap(receiptStatementV2Schema.safeParse({ ...rest, settlement, v: RECEIPT_VERSION_2, settledAt }), "receiptStatement");
+}
+
+/** How the payment a receipt describes is known: `alma-receipt/1` is always on-chain. */
+export function receiptSettlement(statement: ReceiptStatement): ReceiptSettlement {
+  return "settlement" in statement ? statement.settlement : "onchain";
+}
+
+/** The on-chain transaction, or the private rail's payment reference: whatever names the payment on its rail. */
+export function receiptPaymentRef(statement: ReceiptStatement): string {
+  return "reference" in statement ? statement.reference : statement.txHash;
 }
 
 /** RFC 8785 (JCS). With flat, printable-ASCII string values it reduces to sorted keys + JSON.stringify. */

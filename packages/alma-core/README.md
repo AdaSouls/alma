@@ -36,7 +36,7 @@ without changing it.
 | Credentials | `createCredentialEvidence`, `revokeCredential` — formats `w3c-vc`, `sd-jwt`, `erc8004`, `alma-native` |
 | Relationships | `createRelationship`, `hasRelationship`, `findPath`, `assertNoDelegationCycle` |
 | Reputation evidence | `recordEvidence` — append-only; evidence, not a score |
-| Receipts | `buildReceiptStatement`, `canonicalizeReceipt`, `receiptDigest`, `generateReceiptSalt`, `toBaseUnits` |
+| Receipts | `buildReceiptStatement`, `canonicalizeReceipt`, `receiptDigest`, `receiptSettlement`, `receiptPaymentRef`, `generateReceiptSalt`, `toBaseUnits` |
 | Issuer signatures | `signReceiptMint`, `signReceiptAttestation`, `verifyReceipt`, `createIssuerKeyset`, `toJwks`, `LocalSigner`, `IssuerSigner` |
 | Agent reports | `signAgentReport`, `verifyAgentReport`, `AGENT_REPORT_METRICS` |
 | Job deliveries | `signJobDelivery`, `verifyJobDelivery`, `jsonDigest`, `canonicalJsonValue` |
@@ -44,7 +44,7 @@ without changing it.
 
 Validation failures throw `AlmaValidationError` naming the field and reason.
 
-## Receipts (`alma-receipt/1`)
+## Receipts (`alma-receipt/1`, `alma-receipt/2`)
 
 A receipt is the canonical statement that one settled payment happened
 between a payer and an identified payee. The encoding is unambiguous so any
@@ -71,6 +71,42 @@ const statement = buildReceiptStatement({
 const digest = await receiptDigest(statement); // SHA-256, hex
 ```
 
+### Payments on a private rail (`alma-receipt/2`)
+
+An on-chain payment can be checked by anyone. A card payment through
+Stripe can't: only its parties see it. `alma-receipt/2` adds `settlement`
+for that:
+
+- `onchain`, with `txHash`: the same as `alma-receipt/1`.
+- `counterparty`, with `reference` (e.g. a Stripe PaymentIntent, `pi_...`):
+  the issuer recorded the payer's report but never saw the payment
+  settle. Only the payee's confirmed **payment** attestation establishes
+  it, and it must be **counted apart from on-chain receipts**, never as
+  one.
+
+Without `settlement`, `buildReceiptStatement` builds the same
+`alma-receipt/1` as before, byte for byte, and every existing receipt
+verifies unchanged.
+
+```ts
+const card = buildReceiptStatement({
+  issuer: "adasouls",
+  env: "testnet",
+  action: "eco_124",
+  payer: "alma:main:agent:buyer",
+  payee: "alma:main:agent:vendor",
+  capability: "pay",
+  chain: "stripe:test", // private rails use the CAIP shape too: stripe:test / stripe:live
+  asset: "stripe:test/iso4217:USD",
+  amount: "1250", // minor units: $12.50
+  to: "acct_…", // the payee's Stripe account
+  settlement: "counterparty",
+  reference: "pi_…",
+});
+receiptSettlement(card); // "counterparty" ("onchain" for every alma-receipt/1)
+receiptPaymentRef(card); // "pi_…" (the txHash, on-chain)
+```
+
 ## Issuer signatures
 
 The issuer signs what it asserts about a receipt with Ed25519: a **mint**
@@ -92,7 +128,7 @@ import { createIssuerKeyset, verifyReceipt } from "@adasouls/alma-core";
 // not from wherever the receipt came from.
 const keyset = await createIssuerKeyset([{ iss: "adasouls", publicKey: "<base64url raw key>" }]);
 const r = await verifyReceipt({ id, statement, mint, payment, delivery }, keyset);
-if (r.ok) r.payload; // { statement, digest, independent, payment, delivery }
+if (r.ok) r.payload; // { statement, digest, independent, settlement, payment, delivery }
 else r.reason;       // e.g. "mint: statement does not match the signed digest"
 ```
 

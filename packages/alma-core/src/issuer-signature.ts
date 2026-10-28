@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { canonicalJson, fromBase64Url, toBase64Url, toHex } from "./canonical.js";
 import { unwrap } from "./errors.js";
-import { receiptDigest, receiptStatementSchema, type ReceiptStatement } from "./receipt.js";
+import { receiptDigest, receiptSettlement, receiptStatementSchema, type ReceiptSettlement, type ReceiptStatement } from "./receipt.js";
 
 /**
  * The issuer's signature over what it asserts about a receipt (ADR-020):
@@ -383,6 +383,12 @@ export interface VerifiedReceipt {
   statement: ReceiptStatement;
   digest: string;
   independent: boolean;
+  /**
+   * "counterparty": the issuer never saw this payment settle (a private
+   * rail); only a confirmed `payment` attestation establishes it, and it
+   * must be counted apart from on-chain receipts.
+   */
+  settlement: ReceiptSettlement;
   payment: ReceiptDecision | null;
   delivery: ReceiptDecision | null;
 }
@@ -420,6 +426,6 @@ export async function verifyReceipt(receipt: SignedReceipt, keyset: IssuerKeyset
 
   return {
     ok: true,
-    payload: { id: receipt.id, statement: statement.data, digest, independent: mint.payload.independent === "true", ...answers },
+    payload: { id: receipt.id, statement: statement.data, digest, independent: mint.payload.independent === "true", settlement: receiptSettlement(statement.data), ...answers },
   };
 }

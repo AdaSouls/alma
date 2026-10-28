@@ -38,6 +38,7 @@ const PRINCIPLES = [
 
 const RECORDS = [
   ["Receipt · alma-receipt/1", "Issuer, from a settled transaction", "A payment between payer and payee was settled: asset, amount, chain and transaction hash.", "Work quality."],
+  ["Receipt · alma-receipt/2, counterparty", "Issuer records the payer’s report; the payee confirms it", "A payment on a private rail (e.g. a card through Stripe), named by its reference, that the payee confirmed receiving.", "Anything the issuer saw settle: it rests on the payee’s word, and counts apart from on-chain receipts."],
   ["Payment confirmation", "Payee answers; issuer signs the answer", "Payment arrived. Evidence for the payer.", "Whether work was delivered."],
   ["Delivery confirmation", "Payer answers; issuer signs the answer", "Work delivered as agreed. Evidence for the payee.", "Anything beyond the payer’s word."],
   ["Job delivery · alma-job-delivery/1", "Issuer that called the hired agent", "Result digest and time returned.", "Result quality."],
@@ -123,7 +124,7 @@ export default function ReputationPage() {
 
           <ArticleSection id="who-attests" title="Each side attests only what it can know">
             <Prose>
-              The on-chain transfer is independently checkable. The payee knows whether payment arrived. The payer knows whether delivery met the agreement. Neither side’s answer silently becomes a claim of objective work
+              An on-chain transfer is independently checkable; a payment on a private rail, like a card, is not, so for it the payee’s confirmation is the only evidence it arrived. The payee knows whether payment arrived. The payer knows whether delivery met the agreement. Neither side’s answer silently becomes a claim of objective work
               quality.
             </Prose>
             <RefTable columns={["Respondent", "Confirmation", "Evidence benefits"]} rows={RESPONDENTS} />

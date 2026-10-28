@@ -72,8 +72,36 @@ describe("issuer signatures", () => {
     const r = await verifyReceipt({ id: "rcp_1", statement, mint, payment: await attest("payment", "confirmed"), delivery: null }, keyset);
     expect(r).toEqual({
       ok: true,
-      payload: { id: "rcp_1", statement, digest, independent: true, payment: "confirmed", delivery: null },
+      payload: { id: "rcp_1", statement, digest, independent: true, settlement: "onchain", payment: "confirmed", delivery: null },
     });
+  });
+
+  it("verifyReceipt says when a receipt rests on the counterparty's word", async () => {
+    const { signer, keyset } = await setup();
+    const card = buildReceiptStatement({
+      issuer: "adasouls",
+      env: "testnet",
+      action: "ea_2",
+      payer: "alma:main:agent:a",
+      payee: "alma:main:agent:b",
+      capability: "pay",
+      chain: "stripe:test",
+      asset: "stripe:test/iso4217:USD",
+      amount: "1250",
+      to: "acct_1Nb",
+      settlement: "counterparty",
+      reference: "pi_3Nabc",
+      settledAt: new Date("2026-09-25T00:00:00Z"),
+    });
+    const digest = await receiptDigest(card);
+    const mint = await signReceiptMint(signer, { iss: "adasouls", receipt: "rcp_2", digest, independent: true, signedAt: at });
+    const payment = await signReceiptAttestation(signer, { iss: "adasouls", receipt: "rcp_2", digest, kind: "payment", decision: "confirmed", decidedBy: "agent", decidedAt: at });
+    const r = await verifyReceipt({ id: "rcp_2", statement: card, mint, payment, delivery: null }, keyset);
+    expect(r).toMatchObject({ ok: true, payload: { settlement: "counterparty", payment: "confirmed", statement: { reference: "pi_3Nabc" } } });
+
+    // The settlement is signed: relabelling it on-chain breaks the digest.
+    const relabelled = { ...card, settlement: "onchain", txHash: "pi_3Nabc" } as never;
+    expect(await verifyReceipt({ id: "rcp_2", statement: relabelled, mint, payment, delivery: null }, keyset)).toMatchObject({ ok: false });
   });
 
   it("stored key order and JSON round trips don't matter", async () => {

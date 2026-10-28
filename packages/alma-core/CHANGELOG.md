@@ -1,5 +1,13 @@
 # @adasouls/alma-core
 
+## 0.9.0
+
+### Minor Changes
+
+- [#23](https://github.com/AdaSouls/alma/pull/23) [`d4711af`](https://github.com/AdaSouls/alma/commit/d4711af63ce7b4b7a55fd99291e47a17d6032bf2) Thanks [@MatiFalcone](https://github.com/MatiFalcone)! - Receipts for payments on a private rail: `alma-receipt/2` adds `settlement`. `onchain` (with `txHash`) is the same as `alma-receipt/1`; `counterparty` (with `reference`, e.g. a Stripe PaymentIntent) is a payment the issuer never saw settle, established only by the payee's confirmed payment attestation, and to be counted apart from on-chain receipts. `buildReceiptStatement` without `settlement` still builds `alma-receipt/1`, byte for byte, and every existing receipt verifies unchanged. New: `receiptSettlement()`, `receiptPaymentRef()`, `receiptStatementV1Schema`, `receiptStatementV2Schema`; `verifyReceipt` returns `settlement`.
+  
+  `ReceiptStatement` is now a union of the two versions: code that reads `statement.txHash` has to check the settlement first (or use `receiptPaymentRef()`).
+
 ## 0.8.0
 
 ### Minor Changes

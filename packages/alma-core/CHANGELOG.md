@@ -1,5 +1,11 @@
 # @adasouls/alma-core
 
+## 0.10.0
+
+### Minor Changes
+
+- [#25](https://github.com/AdaSouls/alma/pull/25) [`95fa563`](https://github.com/AdaSouls/alma/commit/95fa56361a5f42612d903d941542af93381cc2f3) Thanks [@MatiFalcone](https://github.com/MatiFalcone)! - Payment authorizations (`alma-payment-authorization/1`): the issuer's permission for one payment out of an agent's Safe, checked on-chain by the AdaSouls payment module. The issuer signs a 32-byte SHA-256 digest of fields packed as Solidity's `abi.encodePacked` does, so a contract can rebuild it, rather than canonical JSON. New: `paymentAuthorizationSchema`, `paymentAuthorizationDigest`, `signPaymentAuthorization`, `verifyPaymentAuthorization`. Existing envelopes are unchanged.
+
 ## 0.9.0
 
 ### Minor Changes

@@ -1,5 +1,12 @@
 # @adasouls/alma-cli
 
+## 0.1.3
+
+### Patch Changes
+
+- Updated dependencies [[`95fa563`](https://github.com/AdaSouls/alma/commit/95fa56361a5f42612d903d941542af93381cc2f3)]:
+  - @adasouls/alma-core@0.10.0
+
 ## 0.1.2
 
 ### Patch Changes

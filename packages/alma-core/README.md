@@ -201,6 +201,42 @@ key order and spacing don't matter. The envelope names the seller and
 not the buyer. It proves the work was handed over, not that it was
 good: that is the buyer's delivery attestation on the receipt.
 
+## Payment authorizations
+
+`alma-payment-authorization/1` is the issuer's permission for one payment
+out of an agent's Safe: this token, this amount, to this address, once,
+before this time. The AdaSouls payment module checks it on-chain before it
+pays (AdaSouls/adasouls-contracts). It moves nothing by itself: the agent
+submits the payment with its own key, and the Safe's owners can remove the
+module at any time.
+
+A contract can't parse JSON cheaply, so this one is not a JSON envelope.
+The issuer signs (Ed25519) the SHA-256 of fixed bytes that Solidity
+rebuilds with `abi.encodePacked`:
+
+```
+"alma-payment-authorization/1" ‖ uint256 chainId ‖ address module ‖ address safe
+‖ address token ‖ address to ‖ uint256 amount ‖ bytes32 nonce ‖ uint64 expiresAt
+```
+
+The signed message is always 32 bytes, and every JSON envelope is longer,
+so a signature on one can never pass as the other.
+
+```ts
+import { signPaymentAuthorization, verifyPaymentAuthorization } from "@adasouls/alma-core";
+
+const signed = await signPaymentAuthorization(signer, {
+  chainId: 8453, module, safe, token, to,
+  amount: "25000000", // base units
+  nonce,              // 32 random bytes, 0x hex: used once
+  expiresAt,          // unix seconds
+});
+// { authorization, kid, digest, sig }: what the agent hands the module.
+const check = await verifyPaymentAuthorization(signed, keyset, "adasouls");
+```
+
+Whether it expired or its nonce was used is the chain's to say.
+
 ## License
 
 MIT

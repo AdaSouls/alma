@@ -38,6 +38,41 @@ export const counterpartyPolicyRulesSchema = z.object({
 });
 export type ManifestCounterpartyPolicyRules = z.infer<typeof counterpartyPolicyRulesSchema>;
 
+/** CIP-1694 governance action types, as Cardano tooling (Koios, cardano-cli JSON) names them. */
+export const GOVERNANCE_ACTION_TYPES = [
+  "ParameterChange",
+  "HardForkInitiation",
+  "TreasuryWithdrawals",
+  "NoConfidence",
+  "NewCommittee",
+  "NewConstitution",
+  "InfoAction",
+] as const;
+export type GovernanceActionType = (typeof GOVERNANCE_ACTION_TYPES)[number];
+
+/**
+ * What an agent that works on Cardano governance may do, declared the
+ * same way `authority` declares what a paying agent may spend. Not a
+ * policy-engine kind yet (that engine only evaluates economic intents);
+ * the agent's own runtime consults it, and a verifier reports it as
+ * declared (ADVISORY) unless a script credential enforces it on chain.
+ *
+ *   governance:
+ *     networks: [cardano:mainnet]
+ *     actionTypes: [TreasuryWithdrawals, InfoAction]   # absent = every type
+ *     humanDecides: [vote]                              # decisions the agent never takes
+ *     publish: after-decision                          # when its analyses become public
+ */
+export const governancePolicySchema = z
+  .object({
+    networks: z.array(z.string().regex(/^cardano:[a-z0-9-]+$/, "a CAIP-2-style cardano network id, e.g. cardano:mainnet")).min(1),
+    actionTypes: z.array(z.enum(GOVERNANCE_ACTION_TYPES)).min(1).optional(),
+    humanDecides: z.array(z.string().min(1)).optional(),
+    publish: z.enum(["after-decision", "immediately"]).optional(),
+  })
+  .strict();
+export type ManifestGovernancePolicy = z.infer<typeof governancePolicySchema>;
+
 /**
  * The declarative shape from docs/21-developer-experience.md's
  * "Quickstart: Agent Manifest" example:
@@ -71,6 +106,7 @@ export const agentManifestSchema = z.object({
   capabilities: z.array(z.string().min(1)).min(1),
   authority: selfPolicyRulesSchema.optional(),
   counterpartyPolicy: counterpartyPolicyRulesSchema.optional(),
+  governance: governancePolicySchema.optional(),
   integrations: z.object({ wallet: z.string().optional(), chain: z.string().optional() }).optional(),
 });
 export type AgentManifest = z.infer<typeof agentManifestSchema>;

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { AlmaValidationError } from "@adasouls/alma-core";
-import { parseManifestYaml, compileManifest, buildManifest, stringifyManifest, agentManifestSchema } from "../src/index.js";
+import { parseManifestYaml, compileManifest, buildManifest, stringifyManifest, agentManifestSchema, GOVERNANCE_ACTION_TYPES } from "../src/index.js";
 
 const treasuryAgentYaml = `
 kind: Agent
@@ -107,5 +107,42 @@ describe("buildManifest / stringifyManifest -- the reverse direction", () => {
     const yamlText = stringifyManifest(built);
     const reparsed = parseManifestYaml(yamlText);
     expect(reparsed).toEqual(built);
+  });
+});
+
+describe("governance -- an agent that works on Cardano governance and never pays", () => {
+  const governanceYaml = `kind: Agent
+version: alma/v1
+metadata:
+  name: governance-analyst
+identity:
+  type: agent
+capabilities:
+  - analyze
+  - attest
+governance:
+  networks: [cardano:mainnet]
+  actionTypes: [TreasuryWithdrawals, InfoAction]
+  humanDecides: [vote]
+  publish: after-decision
+`;
+
+  it("parses a manifest with no payment authority and a governance section", () => {
+    const m = parseManifestYaml(governanceYaml);
+    expect(m.authority).toBeUndefined();
+    expect(m.governance).toEqual({ networks: ["cardano:mainnet"], actionTypes: ["TreasuryWithdrawals", "InfoAction"], humanDecides: ["vote"], publish: "after-decision" });
+    expect(compileManifest(m).governancePolicy).toEqual({ kind: "governance", rules: m.governance });
+  });
+
+  it("rejects an unknown action type, a non-cardano network, and unknown keys", () => {
+    expect(() => parseManifestYaml(governanceYaml.replace("InfoAction]", "Spending]"))).toThrow();
+    expect(() => parseManifestYaml(governanceYaml.replace("cardano:mainnet", "eip155:1"))).toThrow();
+    expect(() => parseManifestYaml(governanceYaml.replace("publish: after-decision", "publish: after-decision\n  vote: true"))).toThrow();
+  });
+
+  it("round-trips through buildManifest and stringifyManifest", () => {
+    const built = buildManifest({ name: "governance-analyst", capabilities: ["analyze", "attest"], governance: { networks: ["cardano:mainnet"], humanDecides: ["vote"] } });
+    expect(parseManifestYaml(stringifyManifest(built))).toEqual(built);
+    expect(GOVERNANCE_ACTION_TYPES).toHaveLength(7);
   });
 });

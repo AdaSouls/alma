@@ -1,4 +1,4 @@
-import { buildManifest, parseManifestYaml, stringifyManifest, type AgentManifest } from "@adasouls/alma-manifest";
+import { GOVERNANCE_ACTION_TYPES, buildManifest, governancePolicySchema, parseManifestYaml, stringifyManifest, type AgentManifest, type ManifestGovernancePolicy } from "@adasouls/alma-manifest";
 import { readManifestText, writeManifestText } from "./project-store.js";
 
 /**
@@ -10,12 +10,18 @@ import { readManifestText, writeManifestText } from "./project-store.js";
  * may or may not consult. What would enforce them is the verifier's
  * question, not this command's.
  */
-export interface Limits {
-  capabilities: string[];
+/** Money limits: declared only for an agent that pays (its capabilities include `pay`). */
+export interface PaymentLimits {
   maxTransaction: Record<string, string>;
   dailySpend: Record<string, string>;
   humanApprovalThreshold: Record<string, string>;
   allowedAssets: string[];
+}
+
+export interface Limits {
+  capabilities: string[];
+  payments?: PaymentLimits;
+  governance?: ManifestGovernancePolicy;
   counterpartyMinTx?: number;
   expiresAt: string;
 }
@@ -28,7 +34,21 @@ export interface LimitFlags {
   assets?: string;
   counterpartyMinTx?: string;
   expires?: string;
+  /** Governance: comma-separated cardano networks, e.g. cardano:mainnet. */
+  govNetworks?: string;
+  /** Governance action types it may work on, comma-separated (default: all). */
+  govTypes?: string;
+  /** Decisions only a person takes, e.g. vote. */
+  humanDecides?: string;
+  /** When its analyses become public: after-decision or immediately. */
+  publish?: string;
 }
+
+/** An agent pays when one of its capabilities is `pay`; only then are money limits asked for. */
+export const paysWith = (capabilities: string[]) => capabilities.includes("pay");
+
+/** A governance section is declared when any governance flag is given. */
+export const hasGovernanceFlags = (f: LimitFlags) => [f.govNetworks, f.govTypes, f.humanDecides, f.publish].some((v) => v !== undefined && v !== "");
 
 export const DEFAULTS = { capabilities: "pay", maxTx: "USDC=100", daily: "USDC=500", approveAbove: "USDC=50", expires: "90d" } as const;
 
@@ -55,34 +75,63 @@ export function parseExpiry(text: string, now = new Date()): string {
   return at.toISOString();
 }
 
-export function limitsFromFlags(flags: Required<Pick<LimitFlags, "capabilities" | "maxTx" | "daily" | "approveAbove" | "expires">> & LimitFlags, now = new Date()): Limits {
-  const maxTransaction = parseAmounts(flags.maxTx, "--max-tx");
+export function limitsFromFlags(flags: LimitFlags & { capabilities: string; expires: string }, now = new Date()): Limits {
   const minTx = flags.counterpartyMinTx === undefined || flags.counterpartyMinTx === "" ? undefined : Number(flags.counterpartyMinTx);
   if (minTx !== undefined && (!Number.isInteger(minTx) || minTx < 0)) throw new Error("--counterparty-min-tx: must be a whole number");
   const capabilities = list(flags.capabilities);
   if (capabilities.length === 0) throw new Error("--capabilities: give at least one, e.g. pay");
+  let payments: PaymentLimits | undefined;
+  if (paysWith(capabilities)) {
+    for (const [k, flag] of [["maxTx", "--max-tx"], ["daily", "--daily"], ["approveAbove", "--approve-above"]] as const) {
+      if (!flags[k]) throw new Error(`${flag}: an agent that pays needs it (e.g. USDC=100)`);
+    }
+    const maxTransaction = parseAmounts(flags.maxTx!, "--max-tx");
+    payments = {
+      maxTransaction,
+      dailySpend: parseAmounts(flags.daily!, "--daily"),
+      humanApprovalThreshold: parseAmounts(flags.approveAbove!, "--approve-above"),
+      // By default, the assets it has a limit for.
+      allowedAssets: flags.assets ? list(flags.assets).map((a) => a.toUpperCase()) : Object.keys(maxTransaction),
+    };
+  } else if (flags.maxTx || flags.daily || flags.approveAbove) {
+    throw new Error("money limits (--max-tx, --daily, --approve-above) only apply to an agent with the `pay` capability");
+  }
   return {
     capabilities,
-    maxTransaction,
-    dailySpend: parseAmounts(flags.daily, "--daily"),
-    humanApprovalThreshold: parseAmounts(flags.approveAbove, "--approve-above"),
-    // By default, the assets it has a limit for.
-    allowedAssets: flags.assets ? list(flags.assets).map((a) => a.toUpperCase()) : Object.keys(maxTransaction),
+    payments,
+    governance: hasGovernanceFlags(flags) ? governanceFromFlags(flags) : undefined,
     counterpartyMinTx: minTx,
     expiresAt: parseExpiry(flags.expires, now),
   };
 }
 
+export function governanceFromFlags(flags: LimitFlags): ManifestGovernancePolicy {
+  const raw = {
+    networks: flags.govNetworks ? list(flags.govNetworks) : ["cardano:mainnet"],
+    ...(flags.govTypes ? { actionTypes: list(flags.govTypes) } : {}),
+    ...(flags.humanDecides ? { humanDecides: list(flags.humanDecides) } : {}),
+    ...(flags.publish ? { publish: flags.publish } : {}),
+  };
+  const parsed = governancePolicySchema.safeParse(raw);
+  if (!parsed.success) {
+    const issue = parsed.error.issues[0];
+    const flag = { networks: "--gov-networks", actionTypes: "--gov-types", humanDecides: "--human-decides", publish: "--publish" }[String(issue.path[0])] ?? "governance";
+    throw new Error(`${flag}: ${issue.message}${issue.path[0] === "actionTypes" ? ` (one of ${GOVERNANCE_ACTION_TYPES.join(", ")})` : ""}`);
+  }
+  return parsed.data;
+}
+
 /** The delegation's constraints: what its issuer allows, in the policy engine's own terms. */
 export function constraintsOf(limits: Limits): Record<string, unknown> {
-  return { maxTransaction: limits.maxTransaction, dailySpend: limits.dailySpend, humanApprovalThreshold: limits.humanApprovalThreshold, allowedAssets: limits.allowedAssets };
+  return { ...(limits.payments ?? {}), ...(limits.governance ? { governance: limits.governance } : {}) };
 }
 
 export function manifestOf(name: string, limits: Limits): AgentManifest {
   return buildManifest({
     name,
     capabilities: limits.capabilities,
-    selfPolicy: constraintsOf(limits) as never,
+    ...(limits.payments ? { selfPolicy: limits.payments } : {}),
+    ...(limits.governance ? { governance: limits.governance } : {}),
     ...(limits.counterpartyMinTx !== undefined ? { counterpartyPolicy: { minCompletedTransactions: limits.counterpartyMinTx } } : {}),
   });
 }
@@ -101,13 +150,44 @@ const amounts = (r: Record<string, string> | undefined) => (r && Object.keys(r).
 
 /** The limits as lines a person reads. */
 export function describeLimits(manifest: AgentManifest): string[] {
-  const a = manifest.authority ?? {};
-  return [
-    `Capabilities: ${manifest.capabilities.join(", ")}`,
-    `Per transaction: ${amounts(a.maxTransaction)}`,
-    `Per day: ${amounts(a.dailySpend)}`,
-    `A person approves above: ${amounts(a.humanApprovalThreshold)}`,
-    `Assets: ${a.allowedAssets?.join(", ") ?? "any"}`,
-    ...(manifest.counterpartyPolicy?.minCompletedTransactions !== undefined ? [`Counterparties need at least ${manifest.counterpartyPolicy.minCompletedTransactions} completed transaction(s)`] : []),
-  ];
+  const lines = [`Capabilities: ${manifest.capabilities.join(", ")}`];
+  const a = manifest.authority;
+  if (a || paysWith(manifest.capabilities)) {
+    lines.push(
+      `Per transaction: ${amounts(a?.maxTransaction)}`,
+      `Per day: ${amounts(a?.dailySpend)}`,
+      `A person approves above: ${amounts(a?.humanApprovalThreshold)}`,
+      `Assets: ${a?.allowedAssets?.join(", ") ?? "any"}`
+    );
+  } else {
+    lines.push("Payments: none (it has no `pay` capability)");
+  }
+  const g = manifest.governance;
+  if (g) {
+    lines.push(`Governance networks: ${g.networks.join(", ")}`);
+    lines.push(`Governance action types: ${g.actionTypes?.join(", ") ?? "all"}`);
+    lines.push(`A person decides: ${g.humanDecides?.join(", ") ?? "nothing reserved"}`);
+    if (g.publish) lines.push(`Analyses published: ${g.publish}`);
+  }
+  if (manifest.counterpartyPolicy?.minCompletedTransactions !== undefined) lines.push(`Counterparties need at least ${manifest.counterpartyPolicy.minCompletedTransactions} completed transaction(s)`);
+  return lines;
+}
+
+/**
+ * The limits an existing alma.yaml declares, so a project that ships its
+ * rules in the repo (the reference agents do) gets a delegation for them
+ * on its first `connect` instead of none.
+ */
+export function limitsOfManifest(manifest: AgentManifest, expiresAt: string): Limits {
+  const a = manifest.authority;
+  return {
+    capabilities: manifest.capabilities,
+    payments:
+      a && a.maxTransaction && a.dailySpend && a.humanApprovalThreshold
+        ? { maxTransaction: a.maxTransaction, dailySpend: a.dailySpend, humanApprovalThreshold: a.humanApprovalThreshold, allowedAssets: a.allowedAssets ?? Object.keys(a.maxTransaction) }
+        : undefined,
+    governance: manifest.governance,
+    counterpartyMinTx: manifest.counterpartyPolicy?.minCompletedTransactions,
+    expiresAt,
+  };
 }

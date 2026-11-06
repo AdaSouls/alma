@@ -1,4 +1,4 @@
-import { MANIFEST_KIND, MANIFEST_VERSION, agentManifestSchema, type AgentManifest, type ManifestCounterpartyPolicyRules, type ManifestSelfPolicyRules } from "./schema.js";
+import { MANIFEST_KIND, MANIFEST_VERSION, agentManifestSchema, type AgentManifest, type ManifestCounterpartyPolicyRules, type ManifestGovernancePolicy, type ManifestSelfPolicyRules } from "./schema.js";
 import { unwrap } from "@adasouls/alma-core";
 
 export interface BuildManifestInput {
@@ -6,6 +6,7 @@ export interface BuildManifestInput {
   capabilities: string[];
   selfPolicy?: ManifestSelfPolicyRules;
   counterpartyPolicy?: ManifestCounterpartyPolicyRules;
+  governance?: ManifestGovernancePolicy;
   integrations?: { wallet?: string; chain?: string };
 }
 
@@ -28,6 +29,7 @@ export function buildManifest(input: BuildManifestInput): AgentManifest {
       capabilities: input.capabilities,
       authority: input.selfPolicy,
       counterpartyPolicy: input.counterpartyPolicy,
+      governance: input.governance,
       integrations: input.integrations,
     }),
     "manifest"

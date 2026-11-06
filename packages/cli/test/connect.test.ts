@@ -238,3 +238,60 @@ describe("alma limits and whoami", () => {
     expect(process.exitCode).toBe(1);
   });
 });
+
+describe("alma connect for an agent that does not pay (governance)", () => {
+  const govConnect = (over: Record<string, unknown> = {}) =>
+    connectCommand({ agent: "governance-analyst", org: "alma:main:org:adasouls", capabilities: "analyze,attest", govNetworks: "cardano:mainnet", humanDecides: "vote", publish: "after-decision", yes: true, ...over });
+
+  it("asks for no money limits, declares the governance rules, and delegates them", async () => {
+    await govConnect();
+    expect(process.exitCode).toBe(0);
+    const manifest = parseManifestYaml(readFileSync(join(dir, "alma.yaml"), "utf8"));
+    expect(manifest.capabilities).toEqual(["analyze", "attest"]);
+    expect(manifest.authority).toBeUndefined();
+    expect(manifest.governance).toEqual({ networks: ["cardano:mainnet"], humanDecides: ["vote"], publish: "after-decision" });
+    const [delegation] = readDelegations(dir);
+    expect(delegation.scope).toEqual({ capabilities: ["analyze", "attest"], constraints: { governance: manifest.governance } });
+    expect(text()).toContain("Payments: none (it has no `pay` capability)");
+    expect(text()).toContain("A person decides: vote");
+    expect(text()).not.toContain("USDC");
+  });
+
+  it("refuses money limits without pay, and an unknown action type", async () => {
+    await govConnect({ maxTx: "USDC=100" });
+    expect(process.exitCode).toBe(1);
+    expect(existsSync(join(dir, "alma.yaml"))).toBe(false);
+    process.exitCode = 0;
+    out.length = 0;
+    await govConnect({ govTypes: "TreasuryWithdrawals,Spending" });
+    expect(process.exitCode).toBe(1);
+    expect(text()).toContain("--gov-types");
+  });
+
+  it("delegates the rules of an alma.yaml shipped in the repo on the first connect", async () => {
+    writeFileSync(join(dir, "alma.yaml"), "kind: Agent\nversion: alma/v1\nmetadata:\n  name: governance-analyst\nidentity:\n  type: agent\ncapabilities: [analyze, attest]\ngovernance:\n  networks: [cardano:mainnet]\n  humanDecides: [vote]\n");
+    await connectCommand({ agent: "governance-analyst", org: "alma:main:org:adasouls", yes: true });
+    expect(process.exitCode).toBe(0);
+    const [delegation] = readDelegations(dir);
+    expect(delegation).toMatchObject({ issuer: "alma:main:org:adasouls", status: "active", scope: { capabilities: ["analyze", "attest"], constraints: { governance: { networks: ["cardano:mainnet"], humanDecides: ["vote"] } } } });
+    // Running it again keeps that one delegation.
+    await connectCommand({ org: "alma:main:org:adasouls", yes: true });
+    expect(readDelegations(dir)).toHaveLength(1);
+  });
+
+  it("whoami and limits describe the governance rules; a change re-delegates", async () => {
+    await govConnect();
+    out.length = 0;
+    await whoamiCommand();
+    expect(text()).toContain("Governance networks: cardano:mainnet");
+    out.length = 0;
+    limitsCommand({ govTypes: "TreasuryWithdrawals,InfoAction" });
+    expect(process.exitCode).toBe(0);
+    const manifest = parseManifestYaml(readFileSync(join(dir, "alma.yaml"), "utf8"));
+    expect(manifest.governance?.actionTypes).toEqual(["TreasuryWithdrawals", "InfoAction"]);
+    expect(manifest.governance?.humanDecides).toEqual(["vote"]);
+    const delegations = readDelegations(dir);
+    expect(delegations.filter((d) => d.status === "active")).toHaveLength(1);
+    expect(delegations.filter((d) => d.status === "revoked")).toHaveLength(1);
+  });
+});

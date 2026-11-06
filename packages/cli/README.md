@@ -116,7 +116,23 @@ Three things to keep in mind about what it writes:
 Limits flags: `--capabilities pay,swap`, `--max-tx USDC=100`,
 `--daily USDC=500`, `--approve-above USDC=50`, `--assets USDC`,
 `--counterparty-min-tx 1`, `--expires 90d`. Anything not passed is asked
-for with a default; `-y` takes the defaults without asking.
+for with a default; `-y` takes the defaults without asking. Money limits
+are asked for only when the capabilities include `pay`; passing them for
+an agent that doesn't pay is an error.
+
+### An agent that doesn't pay: governance
+
+```bash
+npx @adasouls/alma-cli connect --agent governance-analyst --org alma:main:org:adasouls \
+  --capabilities analyze,attest --gov-networks cardano:mainnet --human-decides vote --publish after-decision -y
+```
+
+writes a `governance` section to `alma.yaml` (networks, optional
+`--gov-types` such as `TreasuryWithdrawals,InfoAction`, the decisions only
+a person takes, and when analyses become public) and puts the same rules
+in the delegation's constraints. They are declared, like every limit here:
+the agent's own runtime consults them, and a verifier reports them as
+advisory unless a script credential enforces them on chain.
 
 `--amount` for a signed receipt is a whole number in the asset's base
 units (5 USDC is `5000000`), and `--chain` / `--asset` are CAIP-2 /

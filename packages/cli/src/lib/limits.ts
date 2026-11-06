@@ -172,3 +172,22 @@ export function describeLimits(manifest: AgentManifest): string[] {
   if (manifest.counterpartyPolicy?.minCompletedTransactions !== undefined) lines.push(`Counterparties need at least ${manifest.counterpartyPolicy.minCompletedTransactions} completed transaction(s)`);
   return lines;
 }
+
+/**
+ * The limits an existing alma.yaml declares, so a project that ships its
+ * rules in the repo (the reference agents do) gets a delegation for them
+ * on its first `connect` instead of none.
+ */
+export function limitsOfManifest(manifest: AgentManifest, expiresAt: string): Limits {
+  const a = manifest.authority;
+  return {
+    capabilities: manifest.capabilities,
+    payments:
+      a && a.maxTransaction && a.dailySpend && a.humanApprovalThreshold
+        ? { maxTransaction: a.maxTransaction, dailySpend: a.dailySpend, humanApprovalThreshold: a.humanApprovalThreshold, allowedAssets: a.allowedAssets ?? Object.keys(a.maxTransaction) }
+        : undefined,
+    governance: manifest.governance,
+    counterpartyMinTx: manifest.counterpartyPolicy?.minCompletedTransactions,
+    expiresAt,
+  };
+}

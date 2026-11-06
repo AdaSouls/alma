@@ -2,7 +2,7 @@ import { basename } from "node:path";
 import { almaIdentitySchema, createDelegation, createIdentity, AlmaValidationError, type AlmaIdentity, type Controller } from "@adasouls/alma-core";
 import { detectRuntime } from "../lib/detect-runtime.js";
 import { emptyLog, ignoreIssuerKey, loadOrCreateIssuer } from "../lib/history.js";
-import { DEFAULTS, constraintsOf, describeLimits, limitsFromFlags, manifestOf, paysWith, readManifest, writeManifest, type LimitFlags, type Limits } from "../lib/limits.js";
+import { DEFAULTS, constraintsOf, describeLimits, limitsFromFlags, limitsOfManifest, manifestOf, parseExpiry, paysWith, readManifest, writeManifest, type LimitFlags, type Limits } from "../lib/limits.js";
 import { addServer, detectMcpClients, snippet } from "../lib/mcp-clients.js";
 import { addDelegation, readDelegations, readIdentity, readLog, writeIdentity, writeLog } from "../lib/project-store.js";
 import { promptText } from "../lib/prompt.js";
@@ -78,8 +78,15 @@ export async function connectCommand(opts: ConnectOptions): Promise<void> {
   // ---- 2. Limits
   let limits: Limits | undefined;
   try {
-    if (readManifest(cwd) && !opts.force) {
+    const declared = readManifest(cwd);
+    if (declared && !opts.force) {
       ok("Limits already declared in ./alma.yaml (change them with `alma limits`)");
+      // Rules shipped in the repo, no delegation yet: delegate exactly what alma.yaml declares.
+      const hasActive = readDelegations(cwd).some((d) => d.subject === identity.id && d.status === "active");
+      if (!hasActive && identity.principal) {
+        limits = limitsOfManifest(declared, parseExpiry(opts.expires ?? DEFAULTS.expires));
+        for (const line of describeLimits(declared)) console.log(dim(`    ${line}`));
+      }
     } else {
       const capabilities = await ask(opts.capabilities, "Capabilities", DEFAULTS.capabilities, opts.yes);
       // Money limits are asked for only when the agent pays.

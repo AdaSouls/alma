@@ -1,5 +1,16 @@
 # @adasouls/alma-cli
 
+## 0.2.0
+
+### Minor Changes
+
+- [#27](https://github.com/AdaSouls/alma/pull/27) [`53cfeca`](https://github.com/AdaSouls/alma/commit/53cfeca2ecce5f9b3abfb31336b827dd1d90421d) Thanks [@MatiFalcone](https://github.com/MatiFalcone)! - Agents that don't pay. `alma-manifest` gains a `governance` section (Cardano networks, governance action types, decisions only a person takes, when analyses are published) and `compileManifest` carries it as a `governance` policy. `alma connect` and `alma limits` ask for money limits only when the capabilities include `pay`, refuse them otherwise, and take `--gov-networks`, `--gov-types`, `--human-decides`, `--publish`; the delegation's constraints carry the same rules. `whoami` describes them. A project that ships its `alma.yaml` gets a delegation for exactly those rules on its first `connect`.
+
+### Patch Changes
+
+- Updated dependencies [[`53cfeca`](https://github.com/AdaSouls/alma/commit/53cfeca2ecce5f9b3abfb31336b827dd1d90421d)]:
+  - @adasouls/alma-manifest@0.3.0
+
 ## 0.1.3
 
 ### Patch Changes

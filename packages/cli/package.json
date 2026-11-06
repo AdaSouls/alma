@@ -1,6 +1,6 @@
 {
   "name": "@adasouls/alma-cli",
-  "version": "0.1.3",
+  "version": "0.2.0",
   "description": "Command-line onboarding for the ALMA protocol: give a working agent an identity, declared limits and a signed history from the terminal.",
   "type": "module",
   "bin": {
@@ -26,7 +26,7 @@
   },
   "dependencies": {
     "@adasouls/alma-core": "^0.10.0",
-    "@adasouls/alma-manifest": "^0.2.1",
+    "@adasouls/alma-manifest": "^0.3.0",
     "commander": "^12.1.0"
   },
   "devDependencies": {

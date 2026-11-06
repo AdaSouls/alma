@@ -1,5 +1,5 @@
 import type { DelegationScope } from "@adasouls/alma-core";
-import type { AgentManifest, ManifestCounterpartyPolicyRules, ManifestSelfPolicyRules } from "./schema.js";
+import type { AgentManifest, ManifestCounterpartyPolicyRules, ManifestGovernancePolicy, ManifestSelfPolicyRules } from "./schema.js";
 
 /**
  * The output side of "produces the same agent/delegation/policy/
@@ -16,6 +16,8 @@ export interface CompiledManifest {
   delegation: { scope: DelegationScope };
   selfPolicy?: { kind: "self"; rules: ManifestSelfPolicyRules };
   counterpartyPolicy?: { kind: "counterparty"; rules: ManifestCounterpartyPolicyRules };
+  /** No policy-engine kind evaluates this yet: carried so a caller can store and show it. */
+  governancePolicy?: { kind: "governance"; rules: ManifestGovernancePolicy };
   integrations?: { wallet?: string; chain?: string };
 }
 
@@ -30,6 +32,9 @@ export function compileManifest(manifest: AgentManifest): CompiledManifest {
   }
   if (manifest.counterpartyPolicy) {
     compiled.counterpartyPolicy = { kind: "counterparty", rules: manifest.counterpartyPolicy };
+  }
+  if (manifest.governance) {
+    compiled.governancePolicy = { kind: "governance", rules: manifest.governance };
   }
   if (manifest.integrations) {
     compiled.integrations = manifest.integrations;

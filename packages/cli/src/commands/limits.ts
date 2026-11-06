@@ -1,5 +1,5 @@
 import { createDelegation, revokeDelegation, AlmaValidationError } from "@adasouls/alma-core";
-import { constraintsOf, describeLimits, limitsFromFlags, manifestOf, readManifest, writeManifest, type LimitFlags } from "../lib/limits.js";
+import { constraintsOf, describeLimits, limitsFromFlags, manifestOf, paysWith, readManifest, writeManifest, type LimitFlags } from "../lib/limits.js";
 import { readDelegations, readIdentity, writeDelegations } from "../lib/project-store.js";
 import { bold, dim, fail, ok, pending } from "../lib/format.js";
 
@@ -54,9 +54,14 @@ export function limitsCommand(opts: LimitFlags): void {
     approveAbove: amounts(a?.humanApprovalThreshold),
     assets: opts.maxTx ? undefined : a?.allowedAssets?.join(","),
     counterpartyMinTx: manifest?.counterpartyPolicy?.minCompletedTransactions?.toString(),
+    govNetworks: manifest?.governance?.networks.join(","),
+    govTypes: manifest?.governance?.actionTypes?.join(","),
+    humanDecides: manifest?.governance?.humanDecides?.join(","),
+    publish: manifest?.governance?.publish,
   };
   const merged = { ...current, ...Object.fromEntries(Object.entries(opts).filter(([, v]) => v !== undefined)) } as LimitFlags;
-  const missing = (["capabilities", "maxTx", "daily", "approveAbove"] as const).filter((k) => !merged[k]);
+  const pays = merged.capabilities ? paysWith(merged.capabilities.split(",").map((c) => c.trim())) : false;
+  const missing = (pays ? (["capabilities", "maxTx", "daily", "approveAbove"] as const) : (["capabilities"] as const)).filter((k) => !merged[k]);
   if (missing.length) {
     fail(`Nothing declared yet for: ${missing.join(", ")}. Pass them, or run \`alma connect\`.`);
     process.exitCode = 1;
@@ -67,7 +72,7 @@ export function limitsCommand(opts: LimitFlags): void {
   const old = all.filter((d) => d.subject === identity.id && d.status === "active");
   const issuer = old[0]?.issuer ?? identity.principal;
   try {
-    const limits = limitsFromFlags({ ...merged, capabilities: merged.capabilities!, maxTx: merged.maxTx!, daily: merged.daily!, approveAbove: merged.approveAbove!, expires: opts.expires ?? "90d" });
+    const limits = limitsFromFlags({ ...merged, capabilities: merged.capabilities!, expires: opts.expires ?? "90d" });
     const name = manifest?.metadata.name ?? identity.displayName ?? "agent";
     writeManifest(cwd, name, limits);
     ok("Limits updated in ./alma.yaml");

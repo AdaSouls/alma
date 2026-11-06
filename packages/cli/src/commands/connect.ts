@@ -2,7 +2,7 @@ import { basename } from "node:path";
 import { almaIdentitySchema, createDelegation, createIdentity, AlmaValidationError, type AlmaIdentity, type Controller } from "@adasouls/alma-core";
 import { detectRuntime } from "../lib/detect-runtime.js";
 import { emptyLog, ignoreIssuerKey, loadOrCreateIssuer } from "../lib/history.js";
-import { DEFAULTS, constraintsOf, describeLimits, limitsFromFlags, manifestOf, readManifest, writeManifest, type LimitFlags, type Limits } from "../lib/limits.js";
+import { DEFAULTS, constraintsOf, describeLimits, limitsFromFlags, manifestOf, paysWith, readManifest, writeManifest, type LimitFlags, type Limits } from "../lib/limits.js";
 import { addServer, detectMcpClients, snippet } from "../lib/mcp-clients.js";
 import { addDelegation, readDelegations, readIdentity, readLog, writeIdentity, writeLog } from "../lib/project-store.js";
 import { promptText } from "../lib/prompt.js";
@@ -81,12 +81,19 @@ export async function connectCommand(opts: ConnectOptions): Promise<void> {
     if (readManifest(cwd) && !opts.force) {
       ok("Limits already declared in ./alma.yaml (change them with `alma limits`)");
     } else {
+      const capabilities = await ask(opts.capabilities, "Capabilities", DEFAULTS.capabilities, opts.yes);
+      // Money limits are asked for only when the agent pays.
+      const pays = paysWith(capabilities.split(",").map((c) => c.trim()));
       limits = limitsFromFlags({
         ...opts,
-        capabilities: await ask(opts.capabilities, "Capabilities", DEFAULTS.capabilities, opts.yes),
-        maxTx: await ask(opts.maxTx, "Most it may pay in one transaction", DEFAULTS.maxTx, opts.yes),
-        daily: await ask(opts.daily, "Most it may pay in a day", DEFAULTS.daily, opts.yes),
-        approveAbove: await ask(opts.approveAbove, "A person approves payments above", DEFAULTS.approveAbove, opts.yes),
+        capabilities,
+        ...(pays
+          ? {
+              maxTx: await ask(opts.maxTx, "Most it may pay in one transaction", DEFAULTS.maxTx, opts.yes),
+              daily: await ask(opts.daily, "Most it may pay in a day", DEFAULTS.daily, opts.yes),
+              approveAbove: await ask(opts.approveAbove, "A person approves payments above", DEFAULTS.approveAbove, opts.yes),
+            }
+          : {}),
         expires: opts.expires ?? DEFAULTS.expires,
       });
       writeManifest(cwd, identity.displayName ?? basename(cwd), limits);
